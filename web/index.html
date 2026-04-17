@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Safe - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ AI SMART SAFE</h1>
+            <div id="status-badge" class="badge">Sistem Yükleniyor...</div>
+        </header>
+
+        <main>
+            <div class="card kilit-durum">
+                <h3>Kilit Durumu</h3>
+                <div id="lock-icon">🔒</div>
+                <p id="lock-text">KİLİTLİ</p>
+                <button id="unlock-btn">KİLİDİ AÇ</button>
+            </div>
+
+            <div class="card log-paneli">
+                <h3>Son Giriş Kayıtları</h3>
+                <div id="logs-container">
+                    </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
