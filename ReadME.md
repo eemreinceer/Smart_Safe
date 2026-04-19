@@ -22,6 +22,8 @@ This system uses a high-accuracy facial recognition engine to prevent unauthoriz
 •    Design: KiCad (Electronics), Fusion 360 (Mechanical)
 
 
+
+
 📂 Project Structure
 Plaintext
 SmartSafe/
@@ -33,6 +35,9 @@ SmartSafe/
 ├── 📁 web/                  # Firebase Hosting Dashboard (Frontend)
 ├── 📄 requirements.txt      # Python Dependencies
 └── 📄 .gitignore            # Security and Cache Filters
+
+
+
 
 
 ⚙️ How Does the System Work? (Architecture)
