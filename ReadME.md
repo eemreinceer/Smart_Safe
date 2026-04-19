@@ -37,7 +37,34 @@ SmartSafe/
 └── 📄 .gitignore            # Security and Cache Filters
 
 
+graph TD
+    subgraph "ALGILAMA KATMANI (Perception)"
+        A1[ESP32-CAM / Kamera] -->|Görüntü Akışı| B
+        A2[Parmak İzi Sensörü] -->|Biyometrik Veri| G
+    end
 
+    subgraph "YAPAY ZEKA VE KARAR (Python Backend)"
+        B[OpenCV & DeepFace] -->|Facenet Analizi| C{Doğrulama}
+        C -->|Onay| D[Firebase Realtime DB]
+        C -->|Red| E[Hata Logu / Fotoğraf]
+    end
+
+    subgraph "BULUT VE KONTROL PANELİ (Cloud & UI)"
+        D <-->|Çift Yönlü Veri| F[Web Dashboard]
+        D <-->|Sinyal Akışı| G[ESP32 Gömülü Yazılım]
+    end
+
+    subgraph "GÜÇ VE AKTÜATÖR (Hardware)"
+        G -->|GPIO Tetik| H[Röle Modülü]
+        H -->|12V DC| I[Solenoid Kilit]
+        J[LM2596 Regülatör] -->|Sabit Güç| G
+    end
+
+    %% Renklendirme
+    style D fill:#FFCA28,stroke:#FFA000,color:#000
+    style B fill:#42A5F5,stroke:#1E88E5,color:#fff
+    style G fill:#66BB6A,stroke:#43A047,color:#fff
+    style I fill:#EF5350,stroke:#E53935,color:#fff
 
 
 ⚙️ How Does the System Work? (Architecture)
