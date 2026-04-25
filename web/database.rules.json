@@ -1,0 +1,16 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "safe_001": {
+      "status": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      },
+      "logs": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}
