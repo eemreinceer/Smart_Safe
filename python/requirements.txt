@@ -1,5 +1,0 @@
-firebase-admin>=6.0.0
-deepface>=0.0.79
-opencv-python>=4.5.5.64
-numpy>=1.21.0
-requests>=2.27.0
