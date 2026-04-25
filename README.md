@@ -1,19 +1,17 @@
-# 🛡️ SmartSafe: AI-Powered Hybrid IoT Security Ecosystem
+# 🛡️ SmartSafe: IoT Security System
 
-**An end-to-end embedded systems project integrating deep learning, real-time control, and cloud architecture**
+**An embedded systems project integrating real-time control, cloud synchronization, and custom hardware design**
 
 ---
 
 ## 🚀 Project Overview
 
-SmartSafe is a **production-ready security solution** that demonstrates full-stack IoT development. The system combines:
-- **AI-powered biometric authentication** (Face ID with 98%+ accuracy)
-- **Hybrid hardware-software architecture** (edge computing + cloud sync)
+SmartSafe is a **full-stack IoT security solution** built around the ESP32-CAM. The system combines:
+- **RFID-based authentication** with authorized card management
 - **Custom embedded firmware** (ESP32-CAM real-time control)
+- **Cloud synchronization** (Firebase Realtime Database)
 - **Professional PCB & mechanical design** (KiCad + Fusion 360)
 - **Web-based real-time monitoring dashboard**
-
-**Key Achievement:** Optimized system latency to <100ms between AI analysis and physical lock activation.
 
 ---
 
@@ -21,13 +19,12 @@ SmartSafe is a **production-ready security solution** that demonstrates full-sta
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Input: Video Stream                      │
-│                    (ESP32-CAM Capture)                       │
+│                  Input: RFID Card / Remote Command           │
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
-│               AI Face Recognition (Python)                   │
-│    DeepFace (Facenet) - 98%+ Accuracy Verification         │
+│           ESP32-CAM Firmware (C++ / PlatformIO)              │
+│    RFID Check → Lock Control → Event Logging               │
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
@@ -36,8 +33,8 @@ SmartSafe is a **production-ready security solution** that demonstrates full-sta
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
-│       Physical Action (ESP32 - Embedded Control)             │
-│    Solenoid Lock Trigger + Sensor Management               │
+│              Web Dashboard (React + Firebase SDK)            │
+│    Live Status · Event Logs · Remote Unlock                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -45,31 +42,28 @@ SmartSafe is a **production-ready security solution** that demonstrates full-sta
 
 ## 🌟 Key Technical Features
 
-### 1. **AI & Computer Vision**
-- Real-time face detection and verification using DeepFace
-- 98%+ accuracy achieved through extensive testing in varied lighting conditions
-- Fallback mechanisms for robustness in edge cases
+### 1. **Embedded Systems (Edge Computing)**
+- **Firmware:** C++ with PlatformIO on ESP32-CAM
+- Multi-threaded architecture for simultaneous Wi-Fi, sensor, and lock control
+- RFID authentication via RC522 module
+- Audio feedback via DFPlayer Mini
 
-### 2. **Embedded Systems (Edge Computing)**
-- **Firmware:** C++ with PlatformIO on ESP32
-- Multi-threading for simultaneous Wi-Fi communication, sensor reading, and lock control
-- <200ms image processing latency on edge device
-
-### 3. **Cloud Architecture**
+### 2. **Cloud Architecture**
 - **Firebase Realtime Database** for <100ms state synchronization
 - Event-driven architecture (no polling)
-- Automatic fallback if cloud connection fails
+- OTA (Over-The-Air) firmware updates
+- Offline queue for reliable event logging
 
-### 4. **Hardware Design**
+### 3. **Hardware Design**
 - **Custom PCB:** KiCad schematics with proper voltage regulation and noise filtering
 - **Mechanical Enclosure:** 3D-printed housing protecting all components (Fusion 360)
-- **Sensors:** Motion detection, door status monitoring
+- IRLZ44N MOSFET-driven solenoid lock
 
-### 5. **Frontend**
+### 4. **Frontend**
 - Real-time web dashboard showing:
-  - Lock status
+  - Lock status & online indicator
   - Entry logs with timestamps
-  - Visitor photos
+  - Remote unlock button
   - System health indicators
 
 ---
@@ -78,41 +72,29 @@ SmartSafe is a **production-ready security solution** that demonstrates full-sta
 
 | Category | Technologies |
 |----------|---------------|
-| **AI/ML** | Python, OpenCV, DeepFace, TensorFlow |
-| **Embedded Systems** | C++, PlatformIO, ESP32, ESP32-CAM |
+| **Embedded Systems** | C++, PlatformIO, ESP32-CAM, Arduino Framework |
 | **Cloud & Backend** | Firebase Realtime Database, Firebase Hosting |
 | **Hardware Design** | KiCad (PCB), Fusion 360 (Mechanical) |
-| **Frontend** | HTML5, CSS3, JavaScript (Firebase SDK) |
+| **Frontend** | React, Vite, Firebase SDK |
 
 ---
 
 ## 📂 Project Structure
 
 ```
-SmartSafe/
+Smart_Safe/
 ├── 3D/                          # Fusion 360 Mechanical Design Files
-│   ├── enclosure_v2.f360        # Main housing model
-│   └── component_mounts/        # Individual component brackets
-├── PCB/                         # KiCad Electronics Design
-│   ├── schematic.sch            # Full circuit design
-│   ├── pcb_layout.kicad_pcb     # PCB layout with trace routing
+├── firmware/                    # PlatformIO ESP32 Firmware
+│   ├── include/                 # Header files (config.example.h, ...)
+│   ├── src/                     # Source files (main.cpp, firebase.cpp, ...)
+│   ├── diagram.json             # Wokwi simulation circuit
+│   ├── wokwi.toml               # Wokwi config
+│   └── wokwi_test.sh            # Integration test script
+├── web/                         # React Dashboard (Firebase Hosting)
+│   └── src/                     # App.jsx, firebase.js, CSS
+├── pcb/
+│   ├── kicad/                   # KiCad schematic & PCB layout
 │   └── gerber/                  # Manufacturing-ready Gerber files
-├── src/
-│   ├── python/
-│   │   ├── face_recognition.py  # DeepFace integration + Firebase sync
-│   │   ├── firebase_handler.py  # Cloud database operations
-│   │   └── requirements.txt     # Python dependencies
-│   └── PlatformIO/
-│       ├── src/
-│       │   └── main.cpp         # ESP32 firmware (lock control + sensors)
-│       └── platformio.ini       # Build configuration
-├── web/                         # Firebase Hosting Dashboard
-│   ├── index.html
-│   ├── style.css
-│   └── script.js                # Real-time Firebase listener
-├── docs/
-│   ├── SETUP.md                 # Installation guide
-│   └── DEPLOYMENT.md            # Cloud & hardware deployment steps
 └── .gitignore
 ```
 
@@ -123,19 +105,14 @@ SmartSafe/
 ### **Embedded Systems & Real-Time Control**
 - Multi-threaded firmware development (ESP32)
 - Real-time sensor integration and interrupt handling
-- Hardware communication protocols (I2C, SPI, UART)
-- Power optimization for battery/edge devices
+- Hardware communication protocols (SPI, UART)
+- Power optimization for edge devices
 
 ### **Software Architecture**
-- Full-stack application design (frontend → backend → embedded)
+- Full-stack application design (frontend → cloud → embedded)
 - Asynchronous event-driven programming
-- Cloud integration and API design
-- Error handling and fallback mechanisms
-
-### **AI/ML & Computer Vision**
-- Deep learning model integration (DeepFace/Facenet)
-- Real-time image processing optimization
-- Edge AI deployment (<200ms latency)
+- Cloud integration and REST API usage
+- Error handling and offline fallback mechanisms
 
 ### **Hardware Design & Manufacturing**
 - PCB schematic design (analog + digital circuits)
@@ -144,16 +121,16 @@ SmartSafe/
 - Gerber file generation for PCB manufacturing
 
 ### **DevOps & Deployment**
-- Cloud database design and optimization
-- Firebase security rules and data validation
-- Version control and CI/CD practices
+- Cloud database design and security rules
+- Firebase Hosting deployment
+- Wokwi simulation for hardware-free testing
+- Version control practices
 
 ---
 
 ## 🔧 Setup & Deployment
 
 ### **Prerequisites**
-- Python 3.8+
 - PlatformIO IDE
 - Firebase account (free tier works)
 - KiCad & Fusion 360 (for design files only)
@@ -166,25 +143,29 @@ SmartSafe/
    cd Smart_Safe
    ```
 
-2. **Setup Python Backend**
+2. **Configure Firmware**
    ```bash
-   cd src/python
-   pip install -r requirements.txt
+   cp firmware/include/config.example.h firmware/include/config.h
+   # config.h içindeki Firebase ve WiFi bilgilerini doldur
    ```
 
-3. **Configure Firebase**
-   - Add your Firebase credentials to `serviceAccountKey.json`
-   - Update Firebase project ID in `web/script.js`
-
-4. **Deploy ESP32 Firmware**
+3. **Deploy ESP32 Firmware**
    ```bash
-   cd ../PlatformIO
+   cd firmware
    pio run --target upload
    ```
 
-5. **Start the System**
+4. **Run Web Dashboard (Dev)**
    ```bash
-   python src/python/face_recognition.py
+   cd web
+   npm install
+   npm run dev
+   ```
+
+5. **Deploy Web Dashboard**
+   ```bash
+   npm run build
+   firebase deploy --only hosting
    ```
 
 ---
@@ -193,9 +174,7 @@ SmartSafe/
 
 | Metric | Target | Achieved |
 |--------|--------|----------|
-| Face Recognition Accuracy | 95%+ | **98.2%** |
 | End-to-end Latency | <150ms | **<100ms** |
-| Edge Processing Time | <200ms | **~180ms** |
 | Cloud Sync Delay | <500ms | **<100ms** |
 | System Uptime (7 days test) | >95% | **99.8%** |
 
@@ -205,35 +184,23 @@ SmartSafe/
 
 To run this project, you must:
 
-1. **Add your own reference photo**
-   - Place `patron.jpg` in `src/python/`
-   - High-quality facial image (frontal, good lighting)
-
-2. **Setup Firebase Credentials**
+1. **Setup Firebase Credentials**
    - Generate service account key from Firebase Console
-   - Place `serviceAccountKey.json` in project root
-   - Update Firebase config in `web/script.js`
+   - Update Firebase config in `web/src/firebase.js`
+   - Fill in `firmware/include/config.h` with your API key and credentials
 
-3. **Hardware Setup**
-   - Wire ESP32-CAM to microcontroller
-   - Configure WiFi credentials in firmware
+2. **Hardware Setup**
+   - Wire ESP32-CAM according to PCB schematic
+   - Configure WiFi credentials in `config.h`
    - Test solenoid lock integration
 
 ---
 
-## 🎯 Learning Outcomes & Future Enhancements
+## 🎯 Future Enhancements
 
-### **Current Capabilities**
-- ✅ Real-time face recognition & verification
-- ✅ Hybrid edge-cloud architecture
-- ✅ Custom hardware design
-- ✅ Web-based monitoring
-
-### **Potential Enhancements**
-- [ ] Multi-person face database with roles (admin, visitor, etc.)
-- [ ] Liveness detection to prevent spoofing
-- [ ] Encrypted local storage fallback
 - [ ] Mobile app with push notifications
+- [ ] Fingerprint sensor integration
+- [ ] Encrypted local storage fallback
 - [ ] Integration with existing security systems (alarm, CCTV)
 
 ---
@@ -259,6 +226,6 @@ This project is open-source and available for educational and research purposes.
 
 ## 🙏 Acknowledgments
 
-- **DeepFace** for providing state-of-the-art face recognition
 - **Firebase** for reliable cloud infrastructure
 - **KiCad & Fusion 360** communities for excellent design tools
+- **Wokwi** for hardware simulation environment
