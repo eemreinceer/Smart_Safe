@@ -4,14 +4,14 @@ import { getDatabase } from "firebase/database";
 
 // DİKKAT: Buraya kendi Firebase Console'dan kopyaladığın config objesini yapıştır!
 const firebaseConfig = {
-  apiKey: "AIzaSyB1JD-nyRlM2B_kWXxjTeg3v9Yddu4xDjc",
-  authDomain: "smartsafe-8f4f9.firebaseapp.com",
-  databaseURL: "https://smartsafe-8f4f9-default-rtdb.firebaseio.com",
-  projectId: "smartsafe-8f4f9",
-  storageBucket: "smartsafe-8f4f9.firebasestorage.app",
-  messagingSenderId: "648749418907",
-  appId: "1:648749418907:web:a54f48cc2d23d63e07f93e",
-  measurementId: "G-1QB5SZ3QMV"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
 };
 
 // Firebase'i başlat
