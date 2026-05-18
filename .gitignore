@@ -1,38 +1,62 @@
-# Build artifacts
-firmware/.pio/
-firmware/.vscode/
-firmware/compilation_output.log
-firmware/merged-firmware.bin
-firmware/wokwi.log
-
-# Credentials & Secrets (NEVER commit these)
-firmware/include/config.h
-python/serviceAccountKey.json
-python/patron.jpg
+# ─── Gizli / Hassas Dosyalar ─────────────────────────────────────────────────
+**/serviceAccountKey.json
 **/.env
 **/.env.*
 !**/.env.example
+FIRMWARE/Python/patron.jpg
 
-# Python
-python/__pycache__/
-python/.venv/
-*.pyc
-*.pyo
+# ─── PlatformIO ───────────────────────────────────────────────────────────────
+FIRMWARE/Platform.IO/.pio/
+FIRMWARE/Platform.IO/compilation_output.log
+FIRMWARE/Platform.IO/merged-firmware.bin
+FIRMWARE/Platform.IO/wokwi.log
 
-# Web
-web/node_modules/
-web/dist/
-web/.firebase/
+# ─── Python ───────────────────────────────────────────────────────────────────
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
 
-# OS
+# ─── Node / Web ───────────────────────────────────────────────────────────────
+**/node_modules/
+**/dist/
+**/.firebase/
+*.log
+
+# ─── Flutter / Dart ───────────────────────────────────────────────────────────
+**/.dart_tool/
+**/.pub-cache/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.metadata
+**/*.iml
+**/local.properties
+
+# ─── KiCad ────────────────────────────────────────────────────────────────────
+**/*-backups/
+**/_autosave-*
+**/.history/
+**/_restore_backup_*/
+**/fp-info-cache
+**/report.txt
+**/*.lck
+**/~*
+
+# ─── Dışarıda Tutulan Klasörler ──────────────────────────────────────────────
+GitHub/
+FIRMWARE/Python/
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+**/.idea/
+.vscode/
+**/*.suo
+**/*.swp
+**/*.swo
+
+# ─── İşletim Sistemi ─────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Logs
-*.log
+# ─── Derleme Çıktıları ────────────────────────────────────────────────────────
+**/*.bin
+FIRMWARE/FIRMWARE.zip
