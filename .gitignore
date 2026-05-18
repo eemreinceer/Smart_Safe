@@ -45,6 +45,8 @@ FIRMWARE/Platform.IO/wokwi.log
 # ─── Dışarıda Tutulan Klasörler ──────────────────────────────────────────────
 GitHub/
 FIRMWARE/Python/
+FIRMWARE/MOBILE/
+FIRMWARE/kasa_baslat.bat
 
 # ─── IDE ──────────────────────────────────────────────────────────────────────
 **/.idea/
