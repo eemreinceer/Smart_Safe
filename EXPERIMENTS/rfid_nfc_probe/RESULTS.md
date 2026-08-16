@@ -27,7 +27,7 @@ Anten gain: 0x7 (max, 48 dB)
 | Diğer ulaşım kartı | ? | ? | ? | ? | ? | ? | ? |
 | T.C. kimlik kartı | ? | ? | ? | ? | ? | ? | ? |
 | Yeni tip ehliyet | ? | ? | ? | ? | ? | ? | ? |
-| Banka kartı (temassız) | ? | ? | ? | ? | ? | ? | ? |
+| Banka kartı (temassız) | YES (5/5) | `05:82:15:EB:39:B2:00` | 7 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | YES (5/5 aynı) | **A** (teknik) |
 | Kredi kartı (temassız) | ? | ? | ? | ? | ? | ? | ? |
 | iPhone | ? | ? | ? | ? | ? | ? | ? |
 | Android | ? | ? | ? | ? | ? | ? | ? |
@@ -135,18 +135,41 @@ UID stable   :
 Class        :
 ```
 
-### Banka kartı
+### Banka kartı (temassız)
 ```text
-UID #1 :
-UID #2 :
-UID #3 :
-UID #4 :
-UID #5 :
-Detected     :
-UID readable :
-UID stable   :
-Class        :
+ATQA   : 0x0044   SAK : 0x28
+
+UID #1 : 05 82 15 EB 39 B2 00   (aktivasyon 3/4)
+UID #2 : 05 82 15 EB 39 B2 00   (aktivasyon 4/4)
+UID #3 : 05 82 15 EB 39 B2 00   (aktivasyon 4/4)
+UID #4 : 05 82 15 EB 39 B2 00   (aktivasyon 1/4)
+UID #5 : 05 82 15 EB 39 B2 00   (aktivasyon 4/4)
+
+Detected     : YES (5/5)
+UID readable : YES (5/5)
+UID stable   : YES  - 5 okumanin tamaminda birebir ayni UID
+Class        : A (teknik olarak)
 ```
+
+Notlar:
+- **Beklenti tutmadi.** Temassiz odeme kartlarinda yaygin olan rastgele UID
+  (0x08 onekli, her okumada degisen) bu kartta YOK. Kart sabit 7 baytlik UID
+  yayinliyor. Bu, "banka kartlari rastgele UID kullanir" genellemesinin her
+  kart icin gecerli olmadigini gosteriyor.
+- SAK 0x28: MFRC522 kutuphanesinin tablosunda yok, `PICC_GetType()` bunu
+  "Unknown type" olarak raporluyor. SAK bit alanlarina gore: bit5 (0x20) =
+  ISO14443-4 uyumlu, ayrica MIFARE Classic emulasyonu (SmartMX tipi yonga).
+  Firmware artik SAK bitlerini ayrica cozumluyor.
+- Yalnizca discovery/anti-collision yapildi. Karta ait hicbir hesap verisi,
+  EMV alani veya uygulama sorgulanmadi.
+
+**Teknik olarak A, ama SmartSafe icin onerilmez:**
+- Odeme karti kaybolur/calinir ve **suresi dolunca yenilenir** (3-5 yil).
+  Kart yenilendiginde UID degisir, kullanici kasadan kilitlenir.
+- Cuzdan kaybi tek noktada hem odeme araclarini hem kasa anahtarini goturur.
+- Kasa acmak icin odeme araci gerektirmek, kullaniciyi kartini taniamdigi
+  okuyuculara yaklastirma aliskanligina sokar.
+Karar: kabul edilebilir ama **birincil credential olarak secilmemeli**.
 
 ### Kredi kartı
 ```text

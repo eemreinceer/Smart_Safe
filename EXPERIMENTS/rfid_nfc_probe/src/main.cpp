@@ -248,6 +248,17 @@ static void reportMeasurement(const Sample &s, const Sample *prev) {
     Serial.print(F("PICC type     : "));
     Serial.println(mfrc522.PICC_GetTypeName(type));
 
+    // The library's SAK table only covers a handful of values and returns
+    // "Unknown type" for common composite ones (0x28 = SmartMX-style
+    // ISO14443-4 + MIFARE emulation, seen on payment cards). The SAK bit
+    // fields are defined by ISO/IEC 14443-3, so decode them directly.
+    Serial.print(F("SAK decode    : ISO14443-4 "));
+    Serial.print((s.sak & 0x20) ? F("yes") : F("no"));
+    Serial.print(F(", ISO18092/NFC "));
+    Serial.print((s.sak & 0x40) ? F("yes") : F("no"));
+    Serial.print(F(", cascade "));
+    Serial.println((s.sak & 0x04) ? F("incomplete") : F("complete"));
+
     if (looksRandom(s)) {
       Serial.println(F("NOTE          : 4-byte UID starting with 0x08 = random ID"));
       Serial.println(F("                per ISO14443-3. Expect it to change."));
