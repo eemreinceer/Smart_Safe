@@ -264,7 +264,18 @@ static void reportMeasurement(const Sample &s, const Sample *prev) {
   if (prev != nullptr) {
     Serial.print(F("vs previous   : "));
     if (s.uidValid && prev->uidValid) {
-      Serial.println(sameUid(*prev, s) ? F("SAME UID") : F("*** UID CHANGED ***"));
+      if (sameUid(*prev, s)) {
+        Serial.println(F("SAME UID"));
+      } else {
+        // Either the target really has a changing UID, or a different
+        // object was presented without starting a new session. Mixing two
+        // objects in one session fakes an "unstable UID" verdict, so say
+        // so here rather than letting the report draw a wrong conclusion.
+        Serial.println(F("*** UID CHANGED ***"));
+        Serial.println(F("!! Different object? Start a new session with"));
+        Serial.println(F("!! 'n <label>' before testing another target."));
+        Serial.println(F("!! Same object => this target has an unstable UID."));
+      }
     } else {
       Serial.println(F("n/a (a UID was missing)"));
     }
@@ -359,8 +370,12 @@ static void reportSession() {
     Serial.println(F("  Visible to the RC522, but not a reliable UID source."));
     if (randomUid)      Serial.println(F("  Reason: randomized UID (0x08 prefix)."));
     if (g_uidFailures)  Serial.println(F("  Reason: activation/anti-collision failures."));
-    if (!uidStable && uidReadable && !randomUid)
-                        Serial.println(F("  Reason: UID differed between reads."));
+    if (!uidStable && uidReadable && !randomUid) {
+      Serial.println(F("  Reason: UID differed between reads."));
+      Serial.println(F("  CHECK: was more than one object tested in this"));
+      Serial.println(F("  session? If so this verdict is invalid - press"));
+      Serial.println(F("  'n <label>' and test the object on its own."));
+    }
   }
   Serial.println(F("========================================"));
   Serial.println();
@@ -395,15 +410,18 @@ static void handleSerial() {
 
   while (Serial.available()) {
     char c = (char)Serial.read();
-    if (c == '\r') continue;
-    if (c != '\n') {
+
+    // Accept CR, LF or CRLF as the line terminator: terminal programs
+    // disagree about which one the Enter key sends, and a command that
+    // silently never runs is worse than a stray blank line.
+    if (c != '\r' && c != '\n') {
       if (idx < sizeof(line) - 1) line[idx++] = c;
       continue;
     }
     line[idx] = '\0';
     uint8_t used = idx;
     idx = 0;
-    if (used == 0) continue;
+    if (used == 0) continue;   // also swallows the LF of a CRLF pair
 
     switch (line[0]) {
       case 'n': case 'N': {

@@ -22,7 +22,7 @@ Anten gain: 0x7 (max, 48 dB)
 | Nesne | Detected | UID | UID Length | SAK | PICC Type | UID Stable | SmartSafe V1 |
 |---|---|---|---|---|---|---|---|
 | RC522 beyaz kart | YES (5/5) | `29:5D:63:11` | 4 | 0x08 | MIFARE 1KB | YES (5/5 aynı) | **A** |
-| Mavi tag (anahtarlık) | ? | ? | ? | ? | ? | ? | ? |
+| Mavi tag (anahtarlık) | YES (6/6) | `A7:93:AA:14` | 4 | 0x08 | MIFARE 1KB | YES (6/6 aynı) | **A** |
 | İzmirim Kart | ? | ? | ? | ? | ? | ? | ? |
 | Diğer ulaşım kartı | ? | ? | ? | ? | ? | ? | ? |
 | T.C. kimlik kartı | ? | ? | ? | ? | ? | ? | ? |
@@ -61,18 +61,28 @@ için bunun kartın özelliği değil, kart alana girerken yarım eşleşmiş ha
 poll'a denk gelmesi olduğu değerlendirildi. Aktivasyon retry'ı eklendikten
 sonra 5/5 okundu ve retry sayaçları (2/4, 4/4) bu yorumu doğruladı.
 
-### Mavi tag
+### Mavi tag (anahtarlık)
 ```text
-UID #1 :
-UID #2 :
-UID #3 :
-UID #4 :
-UID #5 :
-Detected     :
-UID readable :
-UID stable   :
-Class        :
+ATQA   : 0x0004   SAK : 0x08   PICC : MIFARE 1KB
+
+UID #1 : A7 93 AA 14   (aktivasyon 4/4)
+UID #2 : A7 93 AA 14   (aktivasyon 1/4)
+UID #3 : A7 93 AA 14   (aktivasyon 2/4)
+UID #4 : A7 93 AA 14   (aktivasyon 2/4)
+UID #5 : A7 93 AA 14   (aktivasyon 4/4)
+UID #6 : A7 93 AA 14   (aktivasyon 3/4)
+
+Detected     : YES (6/6)
+UID readable : YES (6/6)
+UID stable   : YES  - 6 okumanın tamamında birebir aynı UID
+Class        : A
 ```
+
+Not: bu okumalar beyaz kartla aynı oturumda alındığı için firmware'in o anki
+raporu CLASS B verdi. Sebep tag degil, oturumun sifirlanmamis olmasi: ayni
+oturumda iki farkli nesne (beyaz kart + mavi tag) goruldugu icin "UID degisti"
+sonucu cikti. Mavi tag'e ait 6 okumanin tamami ayni UID'yi verdigi icin dogru
+sinif A'dir. Firmware bu tuzagi artik acikca uyariyor.
 
 ### İzmirim Kart
 ```text
