@@ -24,14 +24,15 @@ Anten gain: 0x7 (max, 48 dB)
 | RC522 beyaz kart | YES (5/5) | `29:5D:63:11` | 4 | 0x08 | MIFARE 1KB | YES (5/5 aynı) | **A** |
 | Mavi tag (anahtarlık) | YES (6/6) | `A7:93:AA:14` | 4 | 0x08 | MIFARE 1KB | YES (6/6 aynı) | **A** |
 | İzmirim Kart | YES (5/5) | `04:6F:43:BA:C4:76:80` | 7 | 0x20 | ISO/IEC 14443-4 | YES (5/5 aynı) | **A** |
-| Diğer ulaşım kartı | ? | ? | ? | ? | ? | ? | ? |
+| Diğer ulaşım kartı | _test edilmedi_ | - | - | - | - | - | _ölçülmedi_ |
 | T.C. kimlik kartı | YES (5/5) | her okumada FARKLI (`08...` rastgele) | 4 | 0x20 | ISO/IEC 14443-4 | **NO — rastgele UID** | **B** |
 | Yeni tip ehliyet | **NO** (0 algılama, ~80 s) | - | - | - | - | - | **C** |
 | Banka kartı (temassız) | YES (5/5) | `05:82:15:EB:39:B2:00` | 7 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | YES (5/5 aynı) | **A** (teknik) |
 | Kredi kartı (temassız) | YES (5/5) | `0F:F8:32:51` (yalnız 3/5 okumada) | 4 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | UID tutarlı, okuma güvenilir değil | **B** |
 | iPhone (kilitli) | **YES (5/5)** | **UID alınamadı** (0/5) | - | - | aktivasyon tamamlanmadı | NO (UID yok) | **B** |
-| Android | ? | ? | ? | ? | ? | ? | ? |
-| Diğer 13.56 MHz tag | ? | ? | ? | ? | ? | ? | ? |
+| iPhone (kilit açık) | **YES (5/5)** | **UID alınamadı** (0/5) | - | - | ATQA 0x0001 / 0x0005, aktivasyon yok | NO (UID yok) | **B** |
+| Android | _test edilmedi — cihaz yok_ | - | - | - | - | - | _ölçülmedi_ |
+| Diğer 13.56 MHz tag | _test edilmedi_ | - | - | - | - | - | _ölçülmedi_ |
 
 `SmartSafe V1` sütunu: **A / B / C** (README'deki sınıflandırma).
 
@@ -283,7 +284,28 @@ Notlar:
   protokolu ile devreye girer, sabit bir UID yayinlamaz.
 - SmartSafe icin kullanilamaz. iPhone destegi istenirse tamamen farkli bir yol
   gerekir (ornegin NFC yerine BLE, ya da Apple'in kendi ekosistem API'leri).
-- Ekran acik / kilit acilmis durumda tekrar olculmedi. **Eksik olcum.**
+
+#### iPhone, ekran acik / kilit acilmis (2. tur)
+```text
+UID #1 : <algilandi, UID okunamadi>   (ATQA 0x0001, WUPA)
+UID #2 : <algilandi, UID okunamadi>   (ATQA 0x0001, WUPA)
+UID #3 : <algilandi, UID okunamadi>   (ATQA 0x0005, WUPA)
+UID #4 : <algilandi, UID okunamadi>   (ATQA 0x0001, WUPA)
+UID #5 : <algilandi, UID okunamadi>   (ATQA 0x0001, REQA)
+
+Detected      : YES (5/5)
+UID readable  : NO  (0/5)
+Class         : B
+```
+
+- Kilit acik durumda sonuc **degismedi**: 5/5 algilama, 0 UID.
+- ATQA degerleri dikkat cekici: `0x0001` ve bir kez `0x0005`. Gercek kartlarda
+  gordugumuz degerler `0x0004` (beyaz kart, mavi tag, kredi karti) ve `0x0044`
+  (Izmirim, banka karti) idi. Ayrica `0x0005` standart disi: ATQA'nin bit frame
+  anticollision alaninda normalde tek bit set olur, burada iki bit set.
+- Yorum: telefon duzgun bir kart gibi cevap vermiyor; alana kismi ve kararsiz
+  bir cevap donuyor ve aktivasyona devam etmiyor. Iki tur da ayni sonuca cikti.
+- Sonuc her iki durumda da ayni: **erisilebilir, identifier yok.**
 
 ### Android
 ```text
@@ -310,4 +332,60 @@ Her test yorumlanırken ayrı ayrı cevaplanacak:
 
 ## Sonuç / karar
 
-_(fiziksel testler bittikten sonra doldurulacak)_
+### Ölçülen nesneler ve sınıflar
+
+| Sınıf | Nesneler |
+|---|---|
+| **A** — SmartSafe V1 için doğrudan uygun | RC522 beyaz kart, mavi tag, İzmirim Kart, banka kartı (teknik olarak) |
+| **B** — görülüyor ama güvenilir identifier vermiyor | Kredi kartı, T.C. kimlik, iPhone (kilitli ve kilit açık) |
+| **C** — bu okuyucuyla hiç algılanmadı | Yeni tip ehliyet |
+| _ölçülmedi_ | Android (cihaz yok), diğer ulaşım kartı, diğer 13.56 MHz tag'ler |
+
+### B sınıfının üç farklı sebebi var — karıştırılmamalı
+
+1. **Kredi kartı — okuma güvenilirliği.** UID tutarlı (`0F:F8:32:51`), ama
+   yaklaştırmaların ~%40'ında aktivasyon tamamlanmıyor. Muhtemelen elimizdeki
+   FM17522E klonunun zayıf eşleşmesi. **Daha iyi bir okuyucuyla A olabilir,
+   yeniden ölçülmeli.**
+2. **T.C. kimlik — rastgele UID.** 9 okumanın 9'u farklı, hepsi `0x08` önekli.
+   Kart tasarım gereği sabit numara yayınlamıyor. **Okuyucu değişse de sonuç
+   değişmez.**
+3. **iPhone — aktivasyon hiç tamamlanmıyor.** Her seferinde algılanıyor ama
+   UID üretilmiyor. **Farklı bir yaklaşım gerektirir (BLE, HCE), okuyucu
+   değişikliği çözmez.**
+
+### Ölçümün doğurduğu firmware gereksinimleri
+
+- **UID uzunluğu sabitlenemez.** Ölçülen A adayları hem 4 baytlık
+  (`29:5D:63:11`) hem 7 baytlık (`04:6F:43:BA:C4:76:80`) UID veriyor.
+  SmartSafe credential alanı 4/7/10 baytı taşıyabilmeli.
+- **Tek okumaya güvenilmemeli.** Referans kartta bile okumaların çoğu 2-4
+  aktivasyon denemesi gerektirdi. Production firmware de aktivasyonu
+  tekrarlamalı, ilk başarısızlıkta "kart yok" dememeli.
+- **Rastgele UID tespiti gerekli.** `0x08` önekli 4 baytlık UID kaydedilmeye
+  çalışılırsa kullanıcı bir daha asla eşleşmeyen bir credential kaydeder.
+  Kayıt akışı bunu reddetmeli ve nedenini söylemeli.
+
+### SmartSafe V1 için credential önerisi
+
+**Birincil: MIFARE 1K tag/kart (mavi tag veya beyaz kart).** İkisi de A, ikisi
+de kararlı, ikisi de proje için ayrılmış donanım — kaybolduğunda ya da
+yenilendiğinde kullanıcının başka hiçbir işini aksatmaz.
+
+**İkincil (opsiyonel): İzmirim Kart.** Teknik olarak A ve kullanıcı zaten
+yanında taşıyor. Ancak ulaşım kartı kaybolur/yenilenir ve o an kasa erişimi de
+gider; yedek credential olarak mantıklı, tek credential olarak değil.
+
+**Banka kartı: teknik olarak A, ama önerilmez.** Kart süresi dolunca yenilenir
+(3-5 yıl) ve UID değişir; kullanıcı sebebini anlamadan kasadan kilitlenir.
+
+**Kimlik, ehliyet, iPhone: V1 kapsamı dışında.**
+
+### Güvenlik notu (kapsam dışı ama kayda değer)
+
+Bu deney "UID okunabiliyor mu" sorusunu cevapladı, "UID güvenli mi" sorusunu
+değil. 4 baytlık MIFARE Classic UID'si kopyalanabilir bir değerdir ve UID
+tabanlı authentication **tek başına** bir kasa için zayıftır. SmartSafe'de
+parmak izi donanımı da bulunduğuna göre, RFID'nin ikinci faktör olarak
+konumlandırılması bu ölçümlerin doğal sonucudur. Bu karar V1 kapsamına
+girmiyor ancak mimari tercih yapılırken bilinmeli.
