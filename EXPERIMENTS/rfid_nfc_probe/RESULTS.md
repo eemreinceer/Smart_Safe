@@ -28,7 +28,7 @@ Anten gain: 0x7 (max, 48 dB)
 | T.C. kimlik kartı | ? | ? | ? | ? | ? | ? | ? |
 | Yeni tip ehliyet | ? | ? | ? | ? | ? | ? | ? |
 | Banka kartı (temassız) | YES (5/5) | `05:82:15:EB:39:B2:00` | 7 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | YES (5/5 aynı) | **A** (teknik) |
-| Kredi kartı (temassız) | ? | ? | ? | ? | ? | ? | ? |
+| Kredi kartı (temassız) | YES (5/5) | `0F:F8:32:51` (yalnız 3/5 okumada) | 4 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | UID tutarlı, okuma güvenilir değil | **B** |
 | iPhone | ? | ? | ? | ? | ? | ? | ? |
 | Android | ? | ? | ? | ? | ? | ? | ? |
 | Diğer 13.56 MHz tag | ? | ? | ? | ? | ? | ? | ? |
@@ -171,18 +171,48 @@ Notlar:
   okuyuculara yaklastirma aliskanligina sokar.
 Karar: kabul edilebilir ama **birincil credential olarak secilmemeli**.
 
-### Kredi kartı
+### Kredi kartı (temassız, banka kartindan FARKLI banka)
 ```text
-UID #1 :
-UID #2 :
-UID #3 :
-UID #4 :
-UID #5 :
-Detected     :
-UID readable :
-UID stable   :
-Class        :
+ATQA   : 0x0004   SAK : 0x28
+
+--- 1. tur ---
+UID #1 : <algilandi, UID okunamadi>
+UID #2 : 0F F8 32 51   (aktivasyon 4/4)
+UID #3 : <algilandi, UID okunamadi>
+UID #4 : <algilandi, UID okunamadi>
+UID #5 : 0F F8 32 51   (aktivasyon 4/4)
+UID #6 : 0F F8 32 51   (aktivasyon 3/4)
+-> 6 algilama, 3 UID, hepsi ayni
+
+--- 2. tur (kart sabit ve ortalanmis tutularak) ---
+UID #1 : <algilandi, UID okunamadi>
+UID #2 : 0F F8 32 51   (aktivasyon 1/4)
+UID #3 : <algilandi, UID okunamadi>
+UID #4 : 0F F8 32 51   (aktivasyon 4/4)
+UID #5 : 0F F8 32 51   (aktivasyon 4/4)
+-> 5 algilama, 3 UID, hepsi ayni
+
+Detected      : YES (5/5, 6/6)
+UID readable  : YES ama yalnizca 3/5 (ve 3/6)
+UID consistent: YES - okunabilen her UID birebir ayni
+UID stable    : NO  - her algilama UID uretmiyor
+Class         : B
 ```
+
+Notlar:
+- **B'nin sebebi UID degiskenligi DEGIL.** Kart rastgele UID kullanmiyor;
+  okunabilen butun UID'ler birebir ayni. Sorun okuma guvenilirligi:
+  yaklastirmalarin ~%40'inda anti-collision tamamlanmiyor.
+- Kart sabit ve ortalanmis tutularak yapilan 2. turda sonuc tekrar uretildi,
+  yani olcum teknigi kaynakli degil.
+- Muhtemel sebep okuyucu tarafi: elimizdeki FM17522E klonu referans MIFARE 1K
+  kartta bile okumalarin cogunda 2-4 aktivasyon denemesi istiyor. Daha iyi bir
+  okuyucu (orn. PN532 veya gercek NXP MFRC522) bu karti guvenilir okuyabilir.
+  Bu nedenle sonuc "bu kart kullanilamaz" degil, **"bu kart + bu okuyucu
+  kombinasyonu guvenilir degil"** olarak kaydedilmistir.
+- Pratik karsiligi: kullanici kartini ortalama her 5 denemenin 2'sinde ikinci
+  kez okutmak zorunda kalir. Kasa kapisi icin kabul edilemez.
+- Banka kartiyla ayni SAK (0x28) ama farkli UID uzunlugu (4 bayt vs 7 bayt).
 
 ### iPhone
 ```text
