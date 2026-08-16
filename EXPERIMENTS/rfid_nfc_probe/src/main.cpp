@@ -34,6 +34,12 @@ static const uint32_t POLL_INTERVAL_MS   = 120;  // RF poll period
 static const uint8_t  ABSENT_POLLS_GONE  = 4;    // misses before "target removed"
 static const uint32_t HEARTBEAT_MS       = 20000;// idle "still alive" line
 
+// A card moving into the field can answer REQA before it is coupled well
+// enough to complete anti-collision. Retry activation before believing a
+// UID failure, otherwise good cards get misreported as unstable.
+static const uint8_t  ACTIVATION_ATTEMPTS = 4;
+static const uint16_t ACTIVATION_RETRY_MS = 12;
+
 static const uint8_t  MAX_SAMPLES        = 12;   // stored reads per session
 static const uint8_t  TARGET_SAMPLES     = 5;    // reads required for a verdict
 
@@ -50,6 +56,7 @@ struct Sample {
   uint8_t  uidLen;
   uint8_t  uid[10];
   bool     wokenByWupa;   // needed WUPA instead of REQA
+  uint8_t  attempts;      // activation attempts used (1 = first try)
 };
 
 // ---------------------------------------------------------------
@@ -115,11 +122,12 @@ static void printReaderInfo() {
   printHex2(v);
   Serial.print(F("  ("));
   switch (v) {
-    case 0x88: Serial.print(F("clone / FM17522")); break;
-    case 0x90: Serial.print(F("MFRC522 v0.0"));    break;
-    case 0x91: Serial.print(F("MFRC522 v1.0"));    break;
-    case 0x92: Serial.print(F("MFRC522 v2.0"));    break;
-    default:   Serial.print(F("unknown"));         break;
+    case 0x88: Serial.print(F("clone / FM17522"));  break;
+    case 0x90: Serial.print(F("MFRC522 v0.0"));     break;
+    case 0x91: Serial.print(F("MFRC522 v1.0"));     break;
+    case 0x92: Serial.print(F("MFRC522 v2.0"));     break;
+    case 0xB2: Serial.print(F("clone / FM17522E")); break;
+    default:   Serial.print(F("unknown"));          break;
   }
   Serial.println(F(")"));
 
@@ -134,12 +142,8 @@ static void printReaderInfo() {
   Serial.println(F(" (7 = max, 48 dB)"));
 }
 
-// ---------------------------------------------------------------
-// One RF probe cycle: REQA, then WUPA, then anti-collision
-// ---------------------------------------------------------------
-static bool probeOnce(Sample &s) {
-  memset(&s, 0, sizeof(s));
-
+// One REQA/WUPA + anti-collision attempt.
+static bool probeAttempt(Sample &s) {
   uint8_t atqa[2];
   uint8_t len = sizeof(atqa);
 
@@ -177,6 +181,38 @@ static bool probeOnce(Sample &s) {
 }
 
 // ---------------------------------------------------------------
+// One RF probe cycle.
+//
+// A card entering the field is only partially coupled for a few
+// milliseconds: it can answer REQA while anti-collision still fails.
+// Recording that as "UID not readable" would be a measurement artifact,
+// not a property of the card, so activation is retried before a failure
+// is believed. Only a target that answers repeatedly and still refuses
+// to complete activation is reported as detected-without-UID.
+// ---------------------------------------------------------------
+static bool probeOnce(Sample &s) {
+  memset(&s, 0, sizeof(s));
+
+  bool detectedAny = false;
+
+  for (uint8_t i = 0; i < ACTIVATION_ATTEMPTS; i++) {
+    Sample attempt;
+    memset(&attempt, 0, sizeof(attempt));
+
+    if (probeAttempt(attempt)) {
+      detectedAny = true;
+      attempt.attempts = i + 1;
+      s = attempt;
+      if (attempt.uidValid) return true;   // good read, done
+    }
+
+    if (i + 1 < ACTIVATION_ATTEMPTS) delay(ACTIVATION_RETRY_MS);
+  }
+
+  return detectedAny;
+}
+
+// ---------------------------------------------------------------
 // Reporting
 // ---------------------------------------------------------------
 static void reportMeasurement(const Sample &s, const Sample *prev) {
@@ -194,6 +230,12 @@ static void reportMeasurement(const Sample &s, const Sample *prev) {
 
   Serial.print  (F("Wake command  : "));
   Serial.println(s.wokenByWupa ? F("WUPA (0x52)") : F("REQA (0x26)"));
+
+  Serial.print  (F("Activation    : "));
+  Serial.print(s.attempts);
+  Serial.print(F(" / "));
+  Serial.print(ACTIVATION_ATTEMPTS);
+  Serial.println(s.attempts > 1 ? F(" attempts (weak coupling)") : F(" attempts"));
 
   if (s.uidValid) {
     Serial.print(F("UID           : "));
@@ -262,7 +304,13 @@ static void reportSession() {
       Serial.print(F(", ATQA 0x"));
       printHex2((uint8_t)(g_samples[i].atqa >> 8));
       printHex2((uint8_t)(g_samples[i].atqa & 0xFF));
-      Serial.println(F(")"));
+      Serial.print(F(")"));
+      if (g_samples[i].attempts > 1) {
+        Serial.print(F("  [needed "));
+        Serial.print(g_samples[i].attempts);
+        Serial.print(F(" attempts]"));
+      }
+      Serial.println();
     } else {
       Serial.println(F("<detected, UID not readable>"));
     }
