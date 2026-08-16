@@ -23,7 +23,7 @@ Anten gain: 0x7 (max, 48 dB)
 |---|---|---|---|---|---|---|---|
 | RC522 beyaz kart | YES (5/5) | `29:5D:63:11` | 4 | 0x08 | MIFARE 1KB | YES (5/5 aynı) | **A** |
 | Mavi tag (anahtarlık) | YES (6/6) | `A7:93:AA:14` | 4 | 0x08 | MIFARE 1KB | YES (6/6 aynı) | **A** |
-| İzmirim Kart | ? | ? | ? | ? | ? | ? | ? |
+| İzmirim Kart | YES (5/5) | `04:6F:43:BA:C4:76:80` | 7 | 0x20 | ISO/IEC 14443-4 | YES (5/5 aynı) | **A** |
 | Diğer ulaşım kartı | ? | ? | ? | ? | ? | ? | ? |
 | T.C. kimlik kartı | ? | ? | ? | ? | ? | ? | ? |
 | Yeni tip ehliyet | ? | ? | ? | ? | ? | ? | ? |
@@ -86,16 +86,28 @@ sinif A'dir. Firmware bu tuzagi artik acikca uyariyor.
 
 ### İzmirim Kart
 ```text
-UID #1 :
-UID #2 :
-UID #3 :
-UID #4 :
-UID #5 :
-Detected     :
-UID readable :
-UID stable   :
-Class        :
+ATQA   : 0x0044   SAK : 0x20   PICC : ISO/IEC 14443-4
+
+UID #1 : 04 6F 43 BA C4 76 80   (aktivasyon 2/4)
+UID #2 : 04 6F 43 BA C4 76 80   (aktivasyon 2/4)
+UID #3 : 04 6F 43 BA C4 76 80   (aktivasyon 4/4)
+UID #4 : 04 6F 43 BA C4 76 80   (aktivasyon 2/4)
+UID #5 : 04 6F 43 BA C4 76 80   (aktivasyon 4/4)
+
+Detected     : YES (5/5)
+UID readable : YES (5/5)
+UID stable   : YES  - 5 okumanin tamaminda birebir ayni UID
+Class        : A
 ```
+
+Notlar:
+- SAK 0x20 + ATQA 0x0044 + 7 bayt UID: ISO/IEC 14443-4 karti, muhtemelen
+  MIFARE DESFire. UID `04` ile basliyor = NXP uretici kodu.
+- DESFire kartlar rastgele UID modunda calisacak sekilde yapilandirilabilir.
+  Bu kart oyle yapilandirilmamis, sabit UID yayinliyor. Dolayisiyla bu sonuc
+  "tum ulasim kartlari A" anlamina gelmez, yalnizca bu kart icin gecerlidir.
+- Kart 7 baytlik UID verdigi icin SmartSafe tarafinda UID saklama alani
+  4 bayta sabitlenmemeli.
 
 ### T.C. kimlik kartı
 ```text
