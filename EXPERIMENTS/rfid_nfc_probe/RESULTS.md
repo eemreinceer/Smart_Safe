@@ -119,9 +119,17 @@ UID #3 : 08 51 E5 39   (aktivasyon 3/4)
 UID #4 : <algilandi, UID okunamadi>
 UID #5 : 08 09 96 DD   (aktivasyon 4/4)
 
-Detected      : YES (5/5)
-UID readable  : YES (4/5)
-UID consistent: NO - dort okumanin dordu de FARKLI
+--- 2. tur (oturum etiketi yanlislikla "ehliyet" idi, okutulan kart kimliktir) ---
+UID #1 : 08 18 83 9D   (aktivasyon 4/4)
+UID #2 : 08 25 36 B1   (aktivasyon 1/4)
+UID #3 : 08 53 93 1B   (aktivasyon 3/4)
+UID #4 : 08 4C 5E B2   (aktivasyon 2/4)
+UID #5 : 08 01 70 83   (aktivasyon 2/4)
+-> 5 algilama, 5 UID, besi de FARKLI, besi de 08 onekli
+
+Detected      : YES (5/5 ve 5/5)
+UID readable  : YES (4/5 ve 5/5)
+UID consistent: NO - toplam 9 okumanin 9'u da FARKLI
 UID stable    : NO
 Class         : B
 ```
@@ -140,6 +148,9 @@ Notlar:
   kapsami disindadir. Hicbir kisisel veri okunmadi, okunmaya calisilmadi.
 - **SmartSafe icin kullanilamaz.** Kimlik kartiyla kapi acmak teknik olarak
   mumkun degil.
+- Iki ayri turda toplam 9 okuma yapildi, 9'u da farkli UID verdi. Ikinci turda
+  hic aktivasyon hatasi olmadi (5/5 okundu), yani kart sorunsuz okunuyor ve
+  yalnizca numara degisiyor. Bulgu tekrarlanabilir.
 
 ### Yeni tip ehliyet
 ```text
