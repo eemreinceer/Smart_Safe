@@ -26,7 +26,7 @@ Anten gain: 0x7 (max, 48 dB)
 | İzmirim Kart | YES (5/5) | `04:6F:43:BA:C4:76:80` | 7 | 0x20 | ISO/IEC 14443-4 | YES (5/5 aynı) | **A** |
 | Diğer ulaşım kartı | ? | ? | ? | ? | ? | ? | ? |
 | T.C. kimlik kartı | YES (5/5) | her okumada FARKLI (`08...` rastgele) | 4 | 0x20 | ISO/IEC 14443-4 | **NO — rastgele UID** | **B** |
-| Yeni tip ehliyet | ? | ? | ? | ? | ? | ? | ? |
+| Yeni tip ehliyet | **NO** (0 algılama, ~80 s) | - | - | - | - | - | **C** |
 | Banka kartı (temassız) | YES (5/5) | `05:82:15:EB:39:B2:00` | 7 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | YES (5/5 aynı) | **A** (teknik) |
 | Kredi kartı (temassız) | YES (5/5) | `0F:F8:32:51` (yalnız 3/5 okumada) | 4 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | UID tutarlı, okuma güvenilir değil | **B** |
 | iPhone | ? | ? | ? | ? | ? | ? | ? |
@@ -154,16 +154,24 @@ Notlar:
 
 ### Yeni tip ehliyet
 ```text
-UID #1 :
-UID #2 :
-UID #3 :
-UID #4 :
-UID #5 :
-Detected     :
-UID readable :
-UID stable   :
-Class        :
+Oturum: "ehliyet"
+Ehliyet anten uzerinde ~80 saniye tutuldu ve kaydirildi.
+Bu sure boyunca tek bir NEW RFID/NFC TARGET satiri basilmadi.
+
+Detected      : NO  (0 algilama)
+UID readable  : n/a
+UID stable    : n/a
+Class         : C
 ```
+
+Notlar:
+- RC522 bu belgeden hicbir ISO14443A cevabi (ATQA) almadi. REQA ve WUPA'nin
+  ikisi de cevapsiz kaldi.
+- Kullanicinin degerlendirmesi: ehliyette NFC yok. Sifir algilama bununla
+  tutarli. Ancak bu deney "kartta cip yoktur" iddiasini kanitlayamaz;
+  kanitladigi sey **"RC522 + bu ISO14443A probe bu belgeden cevap alamadi"**.
+- Baska bir frekans/standart (orn. 125 kHz) veya farkli bir okuyucu ile sonuc
+  degisebilir; bu deneyin kapsami 13.56 MHz ISO14443A'dir.
 
 ### Banka kartı (temassız)
 ```text
