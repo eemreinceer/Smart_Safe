@@ -29,7 +29,7 @@ Anten gain: 0x7 (max, 48 dB)
 | Yeni tip ehliyet | **NO** (0 algılama, ~80 s) | - | - | - | - | - | **C** |
 | Banka kartı (temassız) | YES (5/5) | `05:82:15:EB:39:B2:00` | 7 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | YES (5/5 aynı) | **A** (teknik) |
 | Kredi kartı (temassız) | YES (5/5) | `0F:F8:32:51` (yalnız 3/5 okumada) | 4 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | UID tutarlı, okuma güvenilir değil | **B** |
-| iPhone | ? | ? | ? | ? | ? | ? | ? |
+| iPhone (kilitli) | **YES (5/5)** | **UID alınamadı** (0/5) | - | - | aktivasyon tamamlanmadı | NO (UID yok) | **B** |
 | Android | ? | ? | ? | ? | ? | ? | ? |
 | Diğer 13.56 MHz tag | ? | ? | ? | ? | ? | ? | ? |
 
@@ -254,18 +254,36 @@ Notlar:
 
 ### iPhone
 ```text
-Ekran kilidi durumu :
-Express Card ayarı  :
-UID #1 :
-UID #2 :
-UID #3 :
-UID #4 :
-UID #5 :
-Detected     :
-UID readable :
-UID stable   :
-Class        :
+Ekran kilidi durumu : KILITLI
+Express Card ayari  : (kaydedilmedi)
+
+UID #1 : <algilandi, UID okunamadi>
+UID #2 : <algilandi, UID okunamadi>
+UID #3 : <algilandi, UID okunamadi>
+UID #4 : <algilandi, UID okunamadi>
+UID #5 : <algilandi, UID okunamadi>
+
+Detected      : YES (5/5)
+UID readable  : NO  (0/5)
+UID consistent: n/a
+UID stable    : NO (UID yok)
+Class         : B
 ```
+
+Notlar:
+- **Bu deneyin en onemli ayrimi burada gorunur oldu.** iPhone RF alanina her
+  seferinde cevap verdi (ATQA geldi), yani RC522 telefonu **goruyor**. Ancak
+  anti-collision hicbir denemede tamamlanmadi, yani kullanilabilir bir UID
+  alinamadi.
+- Bu nedenle sonuc **C degil B**'dir. "iPhone algilanamadi" demek yanlis olurdu.
+- Dogru ifade: **RC522 + mevcut ISO14443A/UID probe ile kullanilabilir bir
+  credential elde edilemedi.** Bu, "iPhone'un NFC'si yok/calismiyor" anlamina
+  GELMEZ. iPhone pasif bir kart gibi davranmaz; kart emulasyonu yalnizca
+  Apple'in izin verdigi senaryolarda (Apple Pay, ulasim, ev anahtari) ve kendi
+  protokolu ile devreye girer, sabit bir UID yayinlamaz.
+- SmartSafe icin kullanilamaz. iPhone destegi istenirse tamamen farkli bir yol
+  gerekir (ornegin NFC yerine BLE, ya da Apple'in kendi ekosistem API'leri).
+- Ekran acik / kilit acilmis durumda tekrar olculmedi. **Eksik olcum.**
 
 ### Android
 ```text

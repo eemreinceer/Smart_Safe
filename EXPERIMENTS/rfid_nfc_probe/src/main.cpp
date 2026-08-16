@@ -334,7 +334,16 @@ static void reportSession() {
       }
       Serial.println();
     } else {
-      Serial.println(F("<detected, UID not readable>"));
+      // When activation never completes, ATQA is the only evidence we
+      // have about what answered -- so it belongs in the summary, not
+      // just in the live measurement lines. This is the normal case for
+      // phones in card-emulation listen mode.
+      Serial.print(F("<detected, UID not readable>   (ATQA 0x"));
+      printHex2((uint8_t)(g_samples[i].atqa >> 8));
+      printHex2((uint8_t)(g_samples[i].atqa & 0xFF));
+      Serial.print(F(", woken by "));
+      Serial.print(g_samples[i].wokenByWupa ? F("WUPA") : F("REQA"));
+      Serial.println(F(")"));
     }
   }
   Serial.println(F("----------------------------------------"));
@@ -430,7 +439,15 @@ static void reportSession() {
       Serial.print(F(" of "));
       Serial.print(g_detections);
       Serial.println(F(" detections."));
-      if (uidConsistent && g_uidReads >= 2) {
+      if (g_uidReads == 0) {
+        // Answers the field every time, never completes activation. This
+        // is what a phone in card-emulation listen mode looks like: it is
+        // reachable, but it is not a card and hands out no identifier.
+        Serial.println(F("  NOTE: answered every time, activated never."));
+        Serial.println(F("  The target is reachable but yields no UID at"));
+        Serial.println(F("  all -- typical of a phone in card emulation."));
+        Serial.println(F("  Record as B (detected, no identifier), not C."));
+      } else if (uidConsistent && g_uidReads >= 2) {
         // Worth separating: every UID that came through agreed, so the
         // card is not handing out changing identifiers. Intermittent
         // activation on this clone reader is at least as likely to be a
