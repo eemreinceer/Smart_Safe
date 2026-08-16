@@ -342,10 +342,22 @@ static void reportSession() {
   const bool detected     = (g_detections > 0);
   const bool uidReadable  = (g_uidReads > 0);
 
-  bool uidStable = uidReadable && (g_uidFailures == 0) && (g_sampleCount >= 2);
-  for (uint8_t i = 1; i < g_sampleCount && uidStable; i++) {
-    if (!sameUid(g_samples[0], g_samples[i])) uidStable = false;
+  // Two different failure modes, deliberately kept apart:
+  //   uidConsistent -- every UID we DID read was identical
+  //   uidStable     -- consistent AND every detection produced a UID
+  // A card that reads intermittently but always returns the same UID is a
+  // coupling problem; a card that returns different UIDs is a different
+  // problem entirely. Conflating them blames the wrong thing.
+  const Sample *first = nullptr;
+  bool uidConsistent = true;
+  for (uint8_t i = 0; i < g_sampleCount; i++) {
+    if (!g_samples[i].uidValid) continue;
+    if (first == nullptr) { first = &g_samples[i]; continue; }
+    if (!sameUid(*first, g_samples[i])) uidConsistent = false;
   }
+
+  const bool uidStable = uidReadable && uidConsistent &&
+                         (g_uidFailures == 0) && (g_sampleCount >= 2);
 
   bool randomUid = false;
   for (uint8_t i = 0; i < g_sampleCount; i++) {
@@ -353,7 +365,21 @@ static void reportSession() {
   }
 
   Serial.print(F("DETECTED      : ")); Serial.println(detected    ? F("YES") : F("NO"));
-  Serial.print(F("UID READABLE  : ")); Serial.println(uidReadable ? F("YES") : F("NO"));
+  Serial.print(F("UID READABLE  : "));
+  if (!uidReadable) {
+    Serial.println(F("NO"));
+  } else {
+    Serial.print(F("YES ("));
+    Serial.print(g_uidReads);
+    Serial.print(F("/"));
+    Serial.print(g_detections);
+    Serial.println(F(" detections)"));
+  }
+  Serial.print(F("UID CONSISTENT: "));
+  if (!uidReadable)           Serial.println(F("n/a"));
+  else if (g_uidReads < 2)    Serial.println(F("UNKNOWN (one UID read)"));
+  else                        Serial.println(uidConsistent ? F("YES (all reads agreed)")
+                                                           : F("NO (UIDs differed)"));
   Serial.print(F("UID STABLE    : "));
   if (!uidReadable)                Serial.println(F("NO (no UID)"));
   else if (g_sampleCount < 2)      Serial.println(F("UNKNOWN (need >= 2 reads)"));
@@ -379,13 +405,34 @@ static void reportSession() {
   } else {
     Serial.println(F("B"));
     Serial.println(F("  Visible to the RC522, but not a reliable UID source."));
-    if (randomUid)      Serial.println(F("  Reason: randomized UID (0x08 prefix)."));
-    if (g_uidFailures)  Serial.println(F("  Reason: activation/anti-collision failures."));
-    if (!uidStable && uidReadable && !randomUid) {
+
+    if (randomUid) {
+      Serial.println(F("  Reason: randomized UID (0x08 prefix)."));
+    }
+
+    if (!uidConsistent) {
       Serial.println(F("  Reason: UID differed between reads."));
       Serial.println(F("  CHECK: was more than one object tested in this"));
       Serial.println(F("  session? If so this verdict is invalid - press"));
       Serial.println(F("  'n <label>' and test the object on its own."));
+    }
+
+    if (g_uidFailures) {
+      Serial.print  (F("  Reason: activation failed on "));
+      Serial.print(g_uidFailures);
+      Serial.print(F(" of "));
+      Serial.print(g_detections);
+      Serial.println(F(" detections."));
+      if (uidConsistent && g_uidReads >= 2) {
+        // Worth separating: every UID that came through agreed, so the
+        // card is not handing out changing identifiers. Intermittent
+        // activation on this clone reader is at least as likely to be a
+        // coupling problem as a property of the card.
+        Serial.println(F("  NOTE: every UID that WAS read agreed. This looks"));
+        Serial.println(F("  like intermittent coupling, not a changing UID."));
+        Serial.println(F("  Retest holding the target still and centred"));
+        Serial.println(F("  before recording a class B result."));
+      }
     }
   }
   Serial.println(F("========================================"));
