@@ -25,7 +25,7 @@ Anten gain: 0x7 (max, 48 dB)
 | Mavi tag (anahtarlık) | YES (6/6) | `A7:93:AA:14` | 4 | 0x08 | MIFARE 1KB | YES (6/6 aynı) | **A** |
 | İzmirim Kart | YES (5/5) | `04:6F:43:BA:C4:76:80` | 7 | 0x20 | ISO/IEC 14443-4 | YES (5/5 aynı) | **A** |
 | Diğer ulaşım kartı | ? | ? | ? | ? | ? | ? | ? |
-| T.C. kimlik kartı | ? | ? | ? | ? | ? | ? | ? |
+| T.C. kimlik kartı | YES (5/5) | her okumada FARKLI (`08...` rastgele) | 4 | 0x20 | ISO/IEC 14443-4 | **NO — rastgele UID** | **B** |
 | Yeni tip ehliyet | ? | ? | ? | ? | ? | ? | ? |
 | Banka kartı (temassız) | YES (5/5) | `05:82:15:EB:39:B2:00` | 7 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | YES (5/5 aynı) | **A** (teknik) |
 | Kredi kartı (temassız) | YES (5/5) | `0F:F8:32:51` (yalnız 3/5 okumada) | 4 | 0x28 | ISO14443-4 + MIFARE emülasyonu (lib: Unknown) | UID tutarlı, okuma güvenilir değil | **B** |
@@ -111,16 +111,35 @@ Notlar:
 
 ### T.C. kimlik kartı
 ```text
-UID #1 :
-UID #2 :
-UID #3 :
-UID #4 :
-UID #5 :
-Detected     :
-UID readable :
-UID stable   :
-Class        :
+ATQA   : 0x0004   SAK : 0x20   PICC : ISO/IEC 14443-4
+
+UID #1 : 08 20 42 94   (aktivasyon 4/4)
+UID #2 : 08 2B 60 74   (aktivasyon 4/4)
+UID #3 : 08 51 E5 39   (aktivasyon 3/4)
+UID #4 : <algilandi, UID okunamadi>
+UID #5 : 08 09 96 DD   (aktivasyon 4/4)
+
+Detected      : YES (5/5)
+UID readable  : YES (4/5)
+UID consistent: NO - dort okumanin dordu de FARKLI
+UID stable    : NO
+Class         : B
 ```
+
+Notlar:
+- **Rastgele UID.** Dort UID'nin dordu de `08` ile basliyor. ISO/IEC 14443-3'e
+  gore tek boyutlu (4 bayt) UID'de `0x08` oneki "random ID" anlamina gelir:
+  kart her aktivasyonda yeni bir numara uretir.
+- Bu bir ariza degil, **tasarim**: kimlik belgesinin sabit bir seri numarasiyla
+  izlenmesini engellemek icin konulmus bir gizlilik onlemi.
+- Kredi kartindaki B'den farkli olarak bu sonuc **kesindir ve okuyucudan
+  bagimsizdir**. Daha iyi bir okuyucu (PN532, gercek NXP MFRC522) bu sonucu
+  degistiremez; kart sabit bir identifier yayinlamiyor.
+- Kart ISO14443-4 (SAK 0x20) yani APDU seviyesinde konusulabilir bir karttir,
+  ancak uzerindeki veriler MRZ'den turetilen anahtarlarla korunur ve bu deneyin
+  kapsami disindadir. Hicbir kisisel veri okunmadi, okunmaya calisilmadi.
+- **SmartSafe icin kullanilamaz.** Kimlik kartiyla kapi acmak teknik olarak
+  mumkun degil.
 
 ### Yeni tip ehliyet
 ```text

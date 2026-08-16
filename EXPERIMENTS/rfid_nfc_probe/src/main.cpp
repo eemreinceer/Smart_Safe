@@ -408,13 +408,20 @@ static void reportSession() {
 
     if (randomUid) {
       Serial.println(F("  Reason: randomized UID (0x08 prefix)."));
+      Serial.println(F("  This is by design, not a fault: the card issues a"));
+      Serial.println(F("  fresh ID per activation to prevent tracking."));
+      Serial.println(F("  No reader can turn this into a stable credential."));
     }
 
     if (!uidConsistent) {
       Serial.println(F("  Reason: UID differed between reads."));
-      Serial.println(F("  CHECK: was more than one object tested in this"));
-      Serial.println(F("  session? If so this verdict is invalid - press"));
-      Serial.println(F("  'n <label>' and test the object on its own."));
+      // The 0x08 prefix already proves the changing UID came from the
+      // card itself, so the mixed-session warning would only mislead.
+      if (!randomUid) {
+        Serial.println(F("  CHECK: was more than one object tested in this"));
+        Serial.println(F("  session? If so this verdict is invalid - press"));
+        Serial.println(F("  'n <label>' and test the object on its own."));
+      }
     }
 
     if (g_uidFailures) {
