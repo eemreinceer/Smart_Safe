@@ -25,20 +25,6 @@ static bool hasFirebaseConfig()
            strlen(FIREBASE_ROOT_CA_PEM) > 0;
 }
 
-// ══════════════════════════════════════════════
-//  Zaman damgası (dahili yardımcı)
-// ══════════════════════════════════════════════
-static String getTimestamp()
-{
-    struct tm ti;
-    if (!getLocalTime(&ti))
-        return "UNKNOWN_" + String(millis());
-
-    char buf[30];
-    strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &ti);
-    return String(buf);
-}
-
 static String   idToken             = "";
 static uint32_t tokenExpirationMillis = 0;
 
@@ -399,12 +385,4 @@ bool checkRemoteCommands(bool& alarmTrigger)
     }
 
     return true;
-}
-
-// ══════════════════════════════════════════════
-//  Stream (no-op — REST modunda yok)
-// ══════════════════════════════════════════════
-void startLockStatusStream()
-{
-    Serial.println("[FB] Stream REST modunda devre disi");
 }

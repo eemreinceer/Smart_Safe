@@ -41,8 +41,14 @@ FIRMWARE/Platform.IO/wokwi.log
 **/_restore_backup_*/
 **/fp-info-cache
 **/report.txt
+**/*.kicad_prl
 **/*.lck
 **/~*
+
+# Güncel PCB tamamlandığında release artifact olarak yeniden üretilir.
+PCB/gerber files/
+PCB/gerber files.zip
+PCB/akilli_guvenlik_kasasi/akilli_guvenlik_kasasi.pdf
 
 # ─── Dışarıda Tutulan Klasörler ──────────────────────────────────────────────
 GitHub/
@@ -53,6 +59,7 @@ FIRMWARE/kasa_baslat.bat
 # ─── IDE ──────────────────────────────────────────────────────────────────────
 **/.idea/
 .vscode/
+**/.claude/
 **/*.suo
 **/*.swp
 **/*.swo

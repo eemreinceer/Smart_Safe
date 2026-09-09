@@ -13,7 +13,6 @@ bool sendLog(String status, String id, String photoBase64 = "", uint32_t eventTi
 // ─── Cihaz Durumu ───────────────────────────
 bool updateDeviceStatus();
 bool updateLockState(bool isLocked);
-void startLockStatusStream();
 
 // ─── Uzak Komut Kontrolü (tek SSL) ──────────
 bool checkRemoteCommands(bool& alarmTrigger);
