@@ -3,5 +3,6 @@
 
 void initAlarm();
 void triggerAlarm();
+void stopAlarm();
 
 #endif

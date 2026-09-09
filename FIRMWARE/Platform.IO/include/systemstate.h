@@ -17,12 +17,12 @@ enum SystemState
 // ─────────────────────────────────────────────
 //  Global State
 // ─────────────────────────────────────────────
-extern volatile SystemState currentState;
 
 // ─────────────────────────────────────────────
 //  Fonksiyonlar
 // ─────────────────────────────────────────────
 void        setState    (SystemState newState);
+SystemState getState    ();
 const char* getStateName(SystemState state);
 
 #endif

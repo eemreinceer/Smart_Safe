@@ -48,3 +48,10 @@ jobs:
             echo "Possible credential assignment detected" >&2
             exit 1
           fi
+      - name: Enforce RFID-only unlock policy
+        shell: bash
+        run: |
+          if git grep -nE 'REMOTE_UNLOCK|remote[ _-]?unlock|Uzaktan Kilidi Aç' -- FIRMWARE README.md SECURITY.md ':!.github/workflows/firmware-ci.yml'; then
+            echo "RFID-only policy violation: remote unlock path detected" >&2
+            exit 1
+          fi

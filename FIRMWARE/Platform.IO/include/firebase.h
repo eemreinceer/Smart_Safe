@@ -16,4 +16,4 @@ bool updateLockState(bool isLocked);
 void startLockStatusStream();
 
 // ─── Uzak Komut Kontrolü (tek SSL) ──────────
-bool checkRemoteCommands(bool& alarmTrigger, bool& remoteUnlock);
+bool checkRemoteCommands(bool& alarmTrigger);

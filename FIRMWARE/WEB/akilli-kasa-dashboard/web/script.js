@@ -40,12 +40,6 @@ const deviceStatusText = document.getElementById('device-status-text');
 
 const liveClock = document.getElementById('live-clock');
 const currentDate = document.getElementById('current-date');
-const unlockBtn = document.getElementById('unlock-btn');
-
-// --- Confirm Modal Elements ---
-const modalOverlay = document.getElementById('modal-overlay');
-const modalCancel = document.getElementById('modal-cancel');
-const modalConfirm = document.getElementById('modal-confirm');
 
 // --- AUTH ---
 auth.onAuthStateChanged((user) => {
@@ -240,35 +234,6 @@ function updateLogs(snapshot) {
     });
     logCount.textContent = items.length + " kayıt";
 }
-
-// --- UZAKTAN AÇMA ---
-unlockBtn.addEventListener('click', () => {
-    if (!isOnline) {
-        showToast('Cihaz çevrimdışı olduğu için kilidi açamazsınız.', 'error');
-        return;
-    }
-    modalOverlay.classList.add('active');
-});
-
-modalCancel.addEventListener('click', () => {
-    modalOverlay.classList.remove('active');
-});
-
-modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) {
-        modalOverlay.classList.remove('active');
-    }
-});
-
-modalConfirm.addEventListener('click', () => {
-    modalOverlay.classList.remove('active');
-    
-    modalConfirm.disabled = true;
-    db.ref('/safe_001/control/alarm').set('REMOTE_UNLOCK')
-        .then(() => showToast("Kilidi açma isteği cihaza gönderildi.", "success"))
-        .catch(() => showToast("Komut gönderilemedi.", "error"))
-        .finally(() => { modalConfirm.disabled = false; });
-});
 
 function showToast(m, t) {
     const toast = document.createElement('div');

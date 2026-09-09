@@ -19,11 +19,11 @@ ESP32-CAM firmware ----> Solenoid/MOSFET kilit kontrolü
 Firebase RTDB <-------- device status / append-only event logs
        ^
        |
-Yetkili web paneli ----> remote command request
+Yetkili web paneli ----> alarm command request
 ```
 
 - RFID kararı cihazda verilir; Firebase bağlantısı yerel kart kontrolü için gerekli değildir.
-- Remote unlock komutu Firebase'e yazılır, fakat actuator durumunu yalnızca cihaz yayınlar.
+- Kilidi yalnızca cihazdaki allowlist'e tanımlı fiziksel RFID kart açabilir; cloud ve web paneli unlock yetkisine sahip değildir.
 - Web paneli status veya audit log üretmez.
 - TLS CA veya credential eksikse cloud bağlantısı fail-closed devre dışı kalır.
 - OTA password hash yapılandırılmamışsa OTA servisi başlatılmaz.
@@ -59,6 +59,7 @@ Firmware ve dashboard için aynı Firebase hesabını kullanmayın. Device hesab
 cd FIRMWARE/Platform.IO
 pio run -e esp32cam           # simulation build
 pio run -e esp32cam-hardware  # gerçek donanım kod yolu
+pio run -e esp32cam-production # cihaza yüklenecek, RFID UID zorunlu image
 ```
 
 Hardware build'in geçmesi, pinlerin/gerilimlerin doğrulandığını veya fiziksel kilidin güvenli çalıştığını kanıtlamaz.

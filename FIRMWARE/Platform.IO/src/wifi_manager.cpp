@@ -80,6 +80,7 @@ void wifiReconnect()
     {
         applySettings();
         Serial.println("[WiFi] Yeniden baglandi: " + WiFi.localIP().toString());
+        syncNTP();
     }
     else
     {

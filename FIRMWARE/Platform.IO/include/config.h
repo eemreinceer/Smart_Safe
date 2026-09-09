@@ -12,6 +12,9 @@
 #ifndef RFID_MOCK
 #define RFID_MOCK SIMULATION_MODE
 #endif
+#ifndef REQUIRE_PROVISIONING
+#define REQUIRE_PROVISIONING 0
+#endif
 
 // ══════════════════════════════════════════════
 //  WiFi Ayarları
@@ -62,6 +65,7 @@
 //  Sistem Ayarları
 // ══════════════════════════════════════════════
 #define LOCKDOWN_DURATION_MS  30000
+#define ALARM_DURATION_MS     10000
 #define MAX_FAIL_ATTEMPTS     3
 #define LOCK_OPEN_DURATION_MS 3000
 
@@ -77,6 +81,11 @@ static const char* AUTHORIZED_UIDS[AUTHORIZED_UID_COUNT] = {
     AUTHORIZED_UID_2,
     AUTHORIZED_UID_3
 };
+
+#if REQUIRE_PROVISIONING
+static_assert(sizeof(AUTHORIZED_UID_1) > 1,
+              "Production firmware requires at least AUTHORIZED_UID_1 in secrets.h");
+#endif
 
 // ══════════════════════════════════════════════
 //  Pin Tanımları (GERÇEK DONANIM)

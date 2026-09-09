@@ -18,7 +18,7 @@
       "control": {
         "alarm": {
           ".read": "auth != null && auth.token.device_id == 'safe_001'",
-          ".write": "auth != null && ((auth.token.admin == true && (newData.val() == 'REMOTE_UNLOCK' || newData.val() == 'TRIGGER')) || (auth.token.device_id == 'safe_001' && newData.val() == 'IDLE'))",
+          ".write": "auth != null && ((auth.token.admin == true && newData.val() == 'TRIGGER') || (auth.token.device_id == 'safe_001' && newData.val() == 'IDLE'))",
           ".validate": "newData.isString()"
         }
       }

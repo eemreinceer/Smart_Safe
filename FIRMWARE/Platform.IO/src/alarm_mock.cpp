@@ -17,4 +17,9 @@ void triggerAlarm()
     Serial.println("╚══════════════════════════════════╝");
 }
 
+void stopAlarm()
+{
+    Serial.println("[MOCK-ALARM] Alarm durduruldu");
+}
+
 #endif

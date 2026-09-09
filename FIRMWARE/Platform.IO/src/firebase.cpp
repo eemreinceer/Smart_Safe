@@ -40,7 +40,29 @@ static String getTimestamp()
 }
 
 static String   idToken             = "";
-static uint32_t tokenExpirationTime = 0;
+static uint32_t tokenExpirationMillis = 0;
+
+static String jsonEscape(const String& value)
+{
+    String escaped;
+    escaped.reserve(value.length() + 8);
+    for (size_t i = 0; i < value.length(); ++i)
+    {
+        const char c = value[i];
+        if (c == '"' || c == '\\') escaped += '\\';
+        if (static_cast<uint8_t>(c) < 0x20)
+        {
+            char encoded[7];
+            snprintf(encoded, sizeof(encoded), "\\u%04X", static_cast<unsigned char>(c));
+            escaped += encoded;
+        }
+        else
+        {
+            escaped += c;
+        }
+    }
+    return escaped;
+}
 
 // ══════════════════════════════════════════════
 //  Firebase Giriş (Auth REST API)
@@ -67,7 +89,6 @@ static bool loginFirebase()
     }
 
     Serial.println("[FB-AUTH] Firebase auth deneniyor...");
-    Serial.printf("[FB-AUTH] Email: %s\n", FIREBASE_AUTH_EMAIL);
 
     WiFiClientSecure client;
     client.setCACert(FIREBASE_ROOT_CA_PEM);
@@ -85,7 +106,7 @@ static bool loginFirebase()
     http.addHeader("Content-Type", "application/json");
     http.setTimeout(8000);
 
-    String body = "{\"email\":\"" + String(FIREBASE_AUTH_EMAIL) + "\",\"password\":\"" + String(FIREBASE_AUTH_PASSWORD) + "\",\"returnSecureToken\":true}";
+    String body = "{\"email\":\"" + jsonEscape(FIREBASE_AUTH_EMAIL) + "\",\"password\":\"" + jsonEscape(FIREBASE_AUTH_PASSWORD) + "\",\"returnSecureToken\":true}";
     
     Serial.println("[FB-AUTH] POST gonderiliyor...");
     int code = http.POST(body);
@@ -114,11 +135,11 @@ static bool loginFirebase()
                 while (response[expiresIdx] == ' ' || response[expiresIdx] == '"') expiresIdx++;
                 int endExpiresIdx = response.indexOf('"', expiresIdx);
                 int expiresIn = response.substring(expiresIdx, endExpiresIdx).toInt();
-                tokenExpirationTime = time(nullptr) + expiresIn - 300;
+                tokenExpirationMillis = millis() + static_cast<uint32_t>(max(60, expiresIn - 300)) * 1000UL;
             }
             else
             {
-                tokenExpirationTime = time(nullptr) + 3600 - 300;
+                tokenExpirationMillis = millis() + 3300UL * 1000UL;
             }
             Serial.println("[FB-AUTH] Token alindi, giris basarili!");
             return true;
@@ -146,7 +167,13 @@ static bool restRequest(const String& method,
         return false;
     }
 
-    if (restMutex && xSemaphoreTake(restMutex, pdMS_TO_TICKS(12000)) != pdTRUE)
+    if (!restMutex)
+    {
+        Serial.println("[FB] REST mutex yok; istek reddedildi");
+        return false;
+    }
+
+    if (xSemaphoreTake(restMutex, pdMS_TO_TICKS(12000)) != pdTRUE)
     {
         Serial.println("[FB] Mutex timeout, istek atlandi");
         return false;
@@ -161,7 +188,7 @@ static bool restRequest(const String& method,
     }
 
     // Oturum kontrolü ve token yenileme
-    if (idToken == "" || time(nullptr) >= tokenExpirationTime)
+    if (idToken == "" || static_cast<long>(millis() - tokenExpirationMillis) >= 0)
     {
         Serial.println("[FB-AUTH] Token yok/suresi dolmus, giris yapiliyor...");
         if (!loginFirebase())
@@ -230,6 +257,13 @@ void initFirebase()
     if (restMutex == NULL)
         restMutex = xSemaphoreCreateMutex();
 
+    if (restMutex == NULL)
+    {
+        Serial.println("[FB] REST mutex olusturulamadi; cloud devre disi");
+        firebaseReady = false;
+        return;
+    }
+
     if (!hasFirebaseConfig())
     {
         Serial.println("[FB] Firebase veya CA tanimsiz; cloud fail-closed devre disi.");
@@ -275,7 +309,7 @@ bool updateDeviceStatus()
         "\"last_seen\":"  + String((int)time(nullptr)) + ","
         "\"ip\":\""       + WiFi.localIP().toString()  + "\","
         "\"freeHeap\":"   + String((int)ESP.getFreeHeap()) + ","
-        "\"state\":\""    + String(getStateName(currentState)) + "\","
+        "\"state\":\""    + String(getStateName(getState())) + "\","
         "\"firmware\":\"" + String(FIRMWARE_VER) + "\"}";
 
     String resp;
@@ -296,7 +330,7 @@ bool updateLockState(bool isLocked)
     String body =
         "{\"is_locked\":"  + String(isLocked ? "true" : "false") + ","
         "\"last_seen\":"   + String((int)time(nullptr)) + ","
-        "\"state\":\""     + String(getStateName(currentState)) + "\"}";
+        "\"state\":\""     + String(getStateName(getState())) + "\"}";
 
     String resp;
     if (restRequest("PATCH", "/safe_001/status", body, resp))
@@ -318,10 +352,10 @@ bool sendLog(String status, String id, String photoBase64, uint32_t eventTimesta
         eventTimestamp = static_cast<uint32_t>(time(nullptr));
 
     String body =
-        "{\"event\":\""  + status + "\","
-        "\"method\":\"" + id     + "\","
+        "{\"event\":\""  + jsonEscape(status) + "\","
+        "\"method\":\"" + jsonEscape(id)     + "\","
         "\"timestamp\":" + String(eventTimestamp) + ","
-        "\"state\":\""   + String(getStateName(currentState)) + "\"";
+        "\"state\":\""   + String(getStateName(getState())) + "\"";
 
     if (photoBase64.length() > 0)
         body += ",\"photo_base64\":\"" + photoBase64 + "\"";
@@ -339,12 +373,11 @@ bool sendLog(String status, String id, String photoBase64, uint32_t eventTimesta
 }
 
 // ══════════════════════════════════════════════
-//  Uzak komut kontrolü — tek SSL ile alarm + unlock
+//  Uzak komut kontrolü — cloud yalnızca alarm tetikleyebilir
 // ══════════════════════════════════════════════
-bool checkRemoteCommands(bool& alarmTrigger, bool& remoteUnlock)
+bool checkRemoteCommands(bool& alarmTrigger)
 {
     alarmTrigger = false;
-    remoteUnlock = false;
 
     if (!firebaseReady) return false;
 
@@ -354,14 +387,12 @@ bool checkRemoteCommands(bool& alarmTrigger, bool& remoteUnlock)
 
     resp.trim();
     alarmTrigger = (resp == "\"TRIGGER\"");
-    remoteUnlock = (resp == "\"REMOTE_UNLOCK\"");
 
-    if (alarmTrigger || remoteUnlock)
+    if (alarmTrigger)
     {
         if (!restRequest("PUT", "/safe_001/control/alarm", "\"IDLE\"", resp))
         {
             alarmTrigger = false;
-            remoteUnlock = false;
             Serial.println("[FB] Komut claim edilemedi; guvenli sekilde reddedildi");
             return false;
         }

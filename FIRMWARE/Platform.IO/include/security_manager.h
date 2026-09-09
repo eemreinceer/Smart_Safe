@@ -17,4 +17,5 @@ void          securityInit        ();               // queue oluşturur
 void          securityHandleEvent (const SafeEvent& ev); // auth/unauth işler
 bool          securityIsLockedDown();
 unsigned long securityGetLockUntil();
+unsigned long securityGetLockRemainingMs();
 void          securityCheckExpiry ();               // taskSystem çağırır

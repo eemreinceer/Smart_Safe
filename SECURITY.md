@@ -20,4 +20,4 @@ Public issue açıp credential, exploit veya kişisel veri yayınlamayın. GitHu
 - RC522 UID allowlist, klonlamaya dayanıklı authentication değildir.
 - `is_locked`, fiziksel kilit sensörü eklenene kadar commanded state'tir.
 - TLS certificate verification ve authenticated OTA zorunludur.
-- Firebase rules deploy edilmeden remote unlock etkinleştirilmemelidir.
+- Cloud ve web paneli kilidi açamaz. Kilidi açan tek yetkilendirme yolu cihazdaki allowlist'e tanımlı fiziksel RFID karttır.

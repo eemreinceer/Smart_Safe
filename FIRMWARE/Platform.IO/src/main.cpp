@@ -35,8 +35,8 @@ void taskRFID(void* pv)
     while (true)
     {
         if (securityIsLockedDown() ||
-            currentState == STATE_LOCKDOWN ||
-            currentState == STATE_ALARM)
+            getState() == STATE_LOCKDOWN ||
+            getState() == STATE_ALARM)
         {
             esp_task_wdt_reset();
             vTaskDelay(pdMS_TO_TICKS(1000));
@@ -64,8 +64,8 @@ void taskRFID(void* pv)
         }
         else
         {
-            if (currentState != STATE_LOCKDOWN &&
-                currentState != STATE_ALARM)
+            if (getState() != STATE_LOCKDOWN &&
+                getState() != STATE_ALARM)
                 setState(STATE_IDLE);
         }
 
@@ -124,24 +124,17 @@ void taskCloud(void* pv)
 
             trySyncOfflineLogs();
 
-            bool alarmTrigger = false, remoteUnlock = false;
-            if (checkRemoteCommands(alarmTrigger, remoteUnlock))
+            bool alarmTrigger = false;
+            if (checkRemoteCommands(alarmTrigger))
             {
                 if (alarmTrigger)
                 {
                     Serial.println("[CLOUD] Uzaktan alarm!");
-                    setState(STATE_ALARM);
-                    triggerAlarm();
-                }
-                if (remoteUnlock)
-                {
-                    Serial.println("[CLOUD] Uzaktan kilit acma!");
                     SafeEvent rem;
                     memset(&rem, 0, sizeof(rem));
-                    rem.type = EVENT_AUTHORIZED;
-                    snprintf(rem.id, sizeof(rem.id), "REMOTE");
+                    rem.type = EVENT_REMOTE_ALARM;
                     if (xQueueSend(eventQueue, &rem, 0) != pdTRUE)
-                        Serial.println("[CLOUD] Security queue dolu; unlock reddedildi");
+                        Serial.println("[CLOUD] Security queue dolu; alarm reddedildi");
                 }
             }
         }
@@ -188,12 +181,12 @@ void taskSystem(void* pv)
             lastReportAt = millis();
             Serial.printf("[SYS] Heap: %u | State: %s | WiFi: %s\n",
                           ESP.getFreeHeap(),
-                          getStateName(currentState),
+                          getStateName(getState()),
                           wifiIsConnected() ? "OK" : "DOWN");
 
-            unsigned long lu = securityGetLockUntil();
-            if (lu > millis())
-                Serial.printf("[SYS] Lockdown: %lu ms kaldi\n", lu - millis());
+            const unsigned long remaining = securityGetLockRemainingMs();
+            if (remaining > 0)
+                Serial.printf("[SYS] Lockdown: %lu ms kaldi\n", remaining);
         }
 
         vTaskDelay(pdMS_TO_TICKS(50));

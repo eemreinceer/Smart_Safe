@@ -1,18 +1,32 @@
 #include <Arduino.h>
 #include "systemstate.h"
 
-volatile SystemState currentState = STATE_IDLE;
+static SystemState s_currentState = STATE_IDLE;
+static portMUX_TYPE s_stateMux = portMUX_INITIALIZER_UNLOCKED;
 
 void setState(SystemState newState)
 {
-    if (currentState == newState)
+    portENTER_CRITICAL(&s_stateMux);
+    const SystemState oldState = s_currentState;
+    if (oldState == newState)
+    {
+        portEXIT_CRITICAL(&s_stateMux);
         return;
+    }
+    s_currentState = newState;
+    portEXIT_CRITICAL(&s_stateMux);
 
     Serial.printf("[STATE] %s → %s\n",
-                  getStateName(currentState),
+                  getStateName(oldState),
                   getStateName(newState));
+}
 
-    currentState = newState;
+SystemState getState()
+{
+    portENTER_CRITICAL(&s_stateMux);
+    const SystemState state = s_currentState;
+    portEXIT_CRITICAL(&s_stateMux);
+    return state;
 }
 
 const char* getStateName(SystemState state)

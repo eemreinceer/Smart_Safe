@@ -32,4 +32,10 @@ void triggerAlarm()
     dfplayer.play(1);   // SD karttaki 001.mp3 dosyasını çal
 }
 
+void stopAlarm()
+{
+    dfplayer.stop();
+    Serial.println("[ALARM] Alarm durduruldu");
+}
+
 #endif
