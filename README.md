@@ -63,6 +63,8 @@ pio run -e esp32cam-production # cihaza yüklenecek, RFID UID zorunlu image
 ```
 
 Hardware build'in geçmesi, pinlerin/gerilimlerin doğrulandığını veya fiziksel kilidin güvenli çalıştığını kanıtlamaz.
+Fiziksel ilk enerji verme ve kabul adımları için
+[`docs/PHYSICAL_BRINGUP_CHECKLIST.md`](docs/PHYSICAL_BRINGUP_CHECKLIST.md) izlenmelidir.
 
 ## Wokwi testi
 
