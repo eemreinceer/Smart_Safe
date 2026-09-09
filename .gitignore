@@ -3,6 +3,8 @@
 **/.env
 **/.env.*
 !**/.env.example
+**/include/secrets.h
+FIRMWARE/WEB/akilli-kasa-dashboard/web/firebase-config.js
 FIRMWARE/Python/patron.jpg
 
 # ─── PlatformIO ───────────────────────────────────────────────────────────────

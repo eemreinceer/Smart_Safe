@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 void initOfflineQueue();
-void storeOfflineLog(String status, String id);
+void storeOfflineLog(String status, String id, uint32_t eventTimestamp = 0);
 void trySyncOfflineLogs();
 
 #endif

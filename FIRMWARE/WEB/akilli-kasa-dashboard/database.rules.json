@@ -1,15 +1,26 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
+    ".read": false,
+    ".write": false,
     "safe_001": {
       "status": {
-        ".read": "auth != null",
-        ".write": "auth != null"
+        ".read": "auth != null && (auth.token.admin == true || auth.token.operator == true)",
+        ".write": "auth != null && auth.token.device_id == 'safe_001'",
+        ".validate": "newData.hasChildren(['is_online', 'is_locked', 'last_seen'])"
       },
       "logs": {
-        ".read": "auth != null",
-        ".write": "auth != null"
+        ".read": "auth != null && (auth.token.admin == true || auth.token.operator == true)",
+        "$logId": {
+          ".write": "auth != null && auth.token.device_id == 'safe_001' && !data.exists()",
+          ".validate": "newData.hasChildren(['event', 'method', 'timestamp']) && newData.child('event').isString() && (newData.child('event').val() == 'AUTHORIZED' || newData.child('event').val() == 'UNAUTHORIZED') && newData.child('method').isString() && newData.child('method').val().length <= 32 && newData.child('timestamp').isNumber()"
+        }
+      },
+      "control": {
+        "alarm": {
+          ".read": "auth != null && auth.token.device_id == 'safe_001'",
+          ".write": "auth != null && ((auth.token.admin == true && (newData.val() == 'REMOTE_UNLOCK' || newData.val() == 'TRIGGER')) || (auth.token.device_id == 'safe_001' && newData.val() == 'IDLE'))",
+          ".validate": "newData.isString()"
+        }
       }
     }
   }

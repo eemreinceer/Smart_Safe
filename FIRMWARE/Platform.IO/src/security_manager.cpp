@@ -9,6 +9,7 @@
 #include "eventlogger.h"
 
 #include <Arduino.h>
+#include <time.h>
 
 // ─── Event Queue ─────────────────────────────
 QueueHandle_t eventQueue = NULL;
@@ -64,12 +65,11 @@ void securityHandleEvent(const SafeEvent& ev)
         Serial.printf("[SEC] Yetkili giris: %s\n", ev.id);
         setState(STATE_AUTHORIZED);
 
-        updateLockState(false);
+        const uint32_t eventTimestamp = static_cast<uint32_t>(time(nullptr));
         unlockSafe();
-        vTaskDelay(pdMS_TO_TICKS(500));
 
-        if (!sendLog("AUTHORIZED", String(ev.id)))
-            storeOfflineLog("AUTHORIZED", String(ev.id));
+        if (!sendLog("AUTHORIZED", String(ev.id), "", eventTimestamp))
+            storeOfflineLog("AUTHORIZED", String(ev.id), eventTimestamp);
 
         logEvent(String("AUTHORIZED ") + ev.id);
         s_failCount = 0;
@@ -83,11 +83,12 @@ void securityHandleEvent(const SafeEvent& ev)
         setState(STATE_UNAUTHORIZED);
 
         String photo = "";
+        const uint32_t eventTimestamp = static_cast<uint32_t>(time(nullptr));
         if (ESP.getFreeHeap() > 90000)
             photo = capturePhotoBase64();
 
-        if (!sendLog("UNAUTHORIZED", String(ev.id), photo))
-            storeOfflineLog("UNAUTHORIZED", String(ev.id));
+        if (!sendLog("UNAUTHORIZED", String(ev.id), photo, eventTimestamp))
+            storeOfflineLog("UNAUTHORIZED", String(ev.id), eventTimestamp);
 
         logEvent("UNAUTHORIZED ACCESS");
 

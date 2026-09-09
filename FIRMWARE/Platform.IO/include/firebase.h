@@ -3,10 +3,12 @@
 
 // ─── Başlatma ───────────────────────────────
 void initFirebase();
+bool firebaseIsReady();
+bool firebaseIsConfigured();
 void initFirebaseStructure();
 
 // ─── Log Sistemi ────────────────────────────
-bool sendLog(String status, String id, String photoBase64 = "");
+bool sendLog(String status, String id, String photoBase64 = "", uint32_t eventTimestamp = 0);
 
 // ─── Cihaz Durumu ───────────────────────────
 bool updateDeviceStatus();

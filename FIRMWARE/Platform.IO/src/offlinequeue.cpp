@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include "offlinequeue.h"
 #include "firebase.h"
+#include <time.h>
 
 Preferences offlinePrefs;
 
@@ -18,8 +19,10 @@ void initOfflineQueue()
     Serial.printf("[OFFLINE] Queue hazir (bekleyen: %d)\n", writeIndex - readIndex);
 }
 
-void storeOfflineLog(String status, String id)
+void storeOfflineLog(String status, String id, uint32_t eventTimestamp)
 {
+    if (eventTimestamp == 0)
+        eventTimestamp = static_cast<uint32_t>(time(nullptr));
     // Kuyruk doluysa en eski kaydı sil (dairesel)
     if ((writeIndex - readIndex) >= MAX_OFFLINE_LOGS)
     {
@@ -30,7 +33,7 @@ void storeOfflineLog(String status, String id)
     }
 
     String key     = "log" + String(writeIndex);
-    String payload = status + "," + id + "," + String(millis());
+    String payload = status + "," + id + "," + String(eventTimestamp);
 
     offlinePrefs.putString(key.c_str(), payload);
     writeIndex++;
@@ -83,8 +86,13 @@ void trySyncOfflineLogs()
 
         String status = payload.substring(0, p1);
         String id     = payload.substring(p1 + 1, p2);
+        uint32_t eventTimestamp = static_cast<uint32_t>(payload.substring(p2 + 1).toInt());
 
-        if (sendLog(status, id))
+        // Eski firmware kayıtları epoch yerine millis() içeriyordu.
+        if (eventTimestamp < 1000000000UL)
+            eventTimestamp = static_cast<uint32_t>(time(nullptr));
+
+        if (sendLog(status, id, "", eventTimestamp))
         {
             offlinePrefs.remove(key.c_str());
             readIndex++;

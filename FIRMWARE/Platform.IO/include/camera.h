@@ -2,7 +2,6 @@
 #define CAMERA_H
 
 #include <Arduino.h>
-#include <String>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 

@@ -4,5 +4,7 @@
 void initLock();
 void unlockSafe();
 void lockSafe();
+void serviceLock();
+bool isSafeLocked();
 
 #endif

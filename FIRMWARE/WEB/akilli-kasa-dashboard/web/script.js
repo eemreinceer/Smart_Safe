@@ -1,18 +1,12 @@
 // ========================================
-// SmartSafe AI — Dashboard Script
+// SmartSafe — Dashboard Script
 // Firebase Realtime + Auth + Modern UI
 // ========================================
 
-const firebaseConfig = {
-  apiKey: "***REMOVED***",
-  authDomain: "smartsafe-8f4f9.firebaseapp.com",
-  databaseURL: "https://smartsafe-8f4f9-default-rtdb.firebaseio.com",
-  projectId: "smartsafe-8f4f9",
-  storageBucket: "smartsafe-8f4f9.firebasestorage.app",
-  messagingSenderId: "648749418907",
-  appId: "1:648749418907:web:a54f48cc2d23d63e07f93e",
-  measurementId: "G-1QB5SZ3QMV"
-};
+const firebaseConfig = window.SMARTSAFE_FIREBASE_CONFIG;
+if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
+    throw new Error('firebase-config.js eksik veya gecersiz');
+}
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -78,22 +72,21 @@ btnLogout.addEventListener('click', (e) => { e.preventDefault(); auth.signOut();
 let statusRef = null;
 let logsRef = null;
 let lastStatusData = null;
-let countdownInterval = null;
 let isOnline = false;
+let clockInterval = null;
+let refreshInterval = null;
 
 function startDashboard() {
     updateClock();
     updateDate();
-    setInterval(updateClock, 1000);
+    if (!clockInterval) clockInterval = setInterval(updateClock, 1000);
 
     updateUI(null);
 
     statusRef = db.ref('/safe_001/status');
     statusRef.on('value', (snapshot) => {
         lastStatusData = snapshot.val();
-        if (!countdownInterval) {
-            updateUI(lastStatusData);
-        }
+        updateUI(lastStatusData);
     });
 
     // SON 10 KAYIT İÇİN KESİN KOMUT
@@ -103,12 +96,20 @@ function startDashboard() {
         updateLogs(snapshot);
     });
 
-    setInterval(() => { if (!countdownInterval) updateUI(lastStatusData); }, 5000);
+    if (!refreshInterval) {
+        refreshInterval = setInterval(() => updateUI(lastStatusData), 5000);
+    }
 }
 
 function stopDashboard() {
     if (statusRef) statusRef.off();
     if (logsRef) logsRef.off();
+    statusRef = null;
+    logsRef = null;
+    if (clockInterval) clearInterval(clockInterval);
+    if (refreshInterval) clearInterval(refreshInterval);
+    clockInterval = null;
+    refreshInterval = null;
 }
 
 // --- UI UPDATES ---
@@ -172,7 +173,7 @@ function setLock(locked) {
 }
 
 function updateLogs(snapshot) {
-    logsContainer.innerHTML = '';
+    logsContainer.replaceChildren();
     const items = [];
     
     snapshot.forEach(child => {
@@ -205,22 +206,37 @@ function updateLogs(snapshot) {
         if (log.event === 'AUTHORIZED' && log.method === 'REMOTE') {
             tagClass = 'log-item__method-tag--remote'; mTag = 'Uzaktan Erişim';
         } else if (log.event === 'AUTHORIZED') {
-            tagClass = 'log-item__method-tag--face'; mTag = 'RFID: ' + log.method;
+            tagClass = 'log-item__method-tag--rfid'; mTag = 'RFID: ' + log.method;
         } else if (log.event === 'UNAUTHORIZED') {
             tagClass = 'log-item__method-tag--danger'; mTag = 'Yetkisiz Giriş';
         }
 
-        const photo = log.photo_base64 && log.photo_base64.length > 30 ? log.photo_base64 : 'https://via.placeholder.com/72';
+        const photo = typeof log.photo_base64 === 'string' &&
+            /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(log.photo_base64) &&
+            log.photo_base64.length <= 150000
+            ? log.photo_base64
+            : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="72" height="72"%3E%3Crect width="72" height="72" fill="%23202738"/%3E%3C/svg%3E';
 
-        const html = `
-            <div class="log-item">
-                <img class="log-item__photo" src="${photo}" alt="Foto" onerror="this.src='https://via.placeholder.com/72'">
-                <div class="log-item__info">
-                    <span class="log-item__time">${d.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'})}</span>
-                    <span class="log-item__method-tag ${tagClass}">${mTag}</span>
-                </div>
-            </div>`;
-        logsContainer.insertAdjacentHTML('beforeend', html);
+        const item = document.createElement('div');
+        item.className = 'log-item';
+
+        const image = document.createElement('img');
+        image.className = 'log-item__photo';
+        image.src = photo;
+        image.alt = 'Erişim olayı fotoğrafı';
+
+        const info = document.createElement('div');
+        info.className = 'log-item__info';
+        const time = document.createElement('span');
+        time.className = 'log-item__time';
+        time.textContent = d.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+        const method = document.createElement('span');
+        method.className = `log-item__method-tag ${tagClass}`;
+        method.textContent = String(mTag).slice(0, 64);
+
+        info.append(time, method);
+        item.append(image, info);
+        logsContainer.appendChild(item);
     });
     logCount.textContent = items.length + " kayıt";
 }
@@ -247,37 +263,11 @@ modalOverlay.addEventListener('click', (e) => {
 modalConfirm.addEventListener('click', () => {
     modalOverlay.classList.remove('active');
     
-    if (countdownInterval) clearInterval(countdownInterval);
-    
-    let timeLeft = 20;
-    countdownInterval = true;
-    
-    setLock(false);
-    lockSub.textContent = `Kasa 20 sn içinde kilitlenecek`;
-    lockSub.style.color = '#f59e0b';
-    
-    db.ref('/safe_001/status').update({ is_locked: false });
-    db.ref('/safe_001/control/alarm').set('REMOTE_UNLOCK');
-    
-    // Log kaydını kesin olarak yap
-    db.ref('/safe_001/logs').push({
-        method: "REMOTE_CONTROL",
-        timestamp: Math.floor(Date.now() / 1000),
-        photo_base64: ""
-    });
-
-    countdownInterval = setInterval(() => {
-        timeLeft--;
-        if (lockSub) lockSub.textContent = `Kasa ${timeLeft} sn içinde kilitlenecek`;
-        if (timeLeft <= 0) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-            db.ref('/safe_001/status').update({ is_locked: true });
-            setLock(true);
-        }
-    }, 1000);
-
-    showToast("Erişim açıldı!", "success");
+    modalConfirm.disabled = true;
+    db.ref('/safe_001/control/alarm').set('REMOTE_UNLOCK')
+        .then(() => showToast("Kilidi açma isteği cihaza gönderildi.", "success"))
+        .catch(() => showToast("Komut gönderilemedi.", "error"))
+        .finally(() => { modalConfirm.disabled = false; });
 });
 
 function showToast(m, t) {

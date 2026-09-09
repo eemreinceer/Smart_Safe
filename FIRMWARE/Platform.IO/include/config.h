@@ -6,27 +6,44 @@
 //  true  → Donanım yok, Serial ile test
 //  false → Gerçek sensörler bağlı
 // ══════════════════════════════════════════════
-#define SIMULATION_MODE true  // true → Donanım yok, Serial ile test
-#define RFID_MOCK       true   // true → RFID modülü yok, Serial'dan test et
+#ifndef SIMULATION_MODE
+#define SIMULATION_MODE 1
+#endif
+#ifndef RFID_MOCK
+#define RFID_MOCK SIMULATION_MODE
+#endif
 
 // ══════════════════════════════════════════════
 //  WiFi Ayarları
 // ══════════════════════════════════════════════
 // Wokwi simulator için Wokwi-GUEST kullanın (şifresiz, internet açık).
 // Gerçek donanımda kendi WiFi'nızı yazın.
-#define WIFI_SSID       "Wokwi-GUEST"
-#define WIFI_PASSWORD   ""
-// Original: SSID="INCEEREX" PWD="***REMOVED***"
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#define WIFI_SSID                 "Wokwi-GUEST"
+#define WIFI_PASSWORD             ""
+#define FIREBASE_API_KEY          ""
+#define FIREBASE_DATABASE_URL     ""
+#define FIREBASE_AUTH_EMAIL       ""
+#define FIREBASE_AUTH_PASSWORD    ""
+#define FIREBASE_ROOT_CA_PEM      ""
+#define OTA_PASSWORD_HASH         ""
+#if SIMULATION_MODE
+#define AUTHORIZED_UID_1          "A1B2C3D4"
+#else
+#define AUTHORIZED_UID_1          ""
+#endif
+#define AUTHORIZED_UID_2          ""
+#define AUTHORIZED_UID_3          ""
+#endif
 
 // ══════════════════════════════════════════════
 //  Firebase Ayarları
 // ══════════════════════════════════════════════
-#define API_KEY         "***REMOVED***"
-#define DATABASE_URL    "https://smartsafe-8f4f9-default-rtdb.firebaseio.com"
-#define AUTO_INIT_FIREBASE true
-
-#define FIREBASE_AUTH_EMAIL    "admin@smartsafe.com"
-#define FIREBASE_AUTH_PASSWORD "***REMOVED***"
+#define API_KEY            FIREBASE_API_KEY
+#define DATABASE_URL       FIREBASE_DATABASE_URL
+#define AUTO_INIT_FIREBASE 1
 
 // ══════════════════════════════════════════════
 //  NTP Ayarları
@@ -56,9 +73,9 @@
 // ══════════════════════════════════════════════
 #define AUTHORIZED_UID_COUNT 3
 static const char* AUTHORIZED_UIDS[AUTHORIZED_UID_COUNT] = {
-    "00000000",   // 1. kart — buraya gerçek UID yaz
-    "00000000",   // 2. kart
-    "00000000"    // 3. kart
+    AUTHORIZED_UID_1,
+    AUTHORIZED_UID_2,
+    AUTHORIZED_UID_3
 };
 
 // ══════════════════════════════════════════════

@@ -34,9 +34,10 @@ void initRFID()
     rfid.PCD_DumpVersionToSerial();   // Modül versiyonunu yazdır
 
     Serial.println("[RFID] ✅ RC522 hazır");
-    Serial.println("[RFID] Yetkili UID listesi:");
+    int configuredCount = 0;
     for (int i = 0; i < AUTHORIZED_UID_COUNT; i++)
-        Serial.printf("  [%d] %s\n", i + 1, AUTHORIZED_UIDS[i]);
+        if (strlen(AUTHORIZED_UIDS[i]) > 0) configuredCount++;
+    Serial.printf("[RFID] Yapilandirilmis kart sayisi: %d\n", configuredCount);
 }
 
 // ── Kart Okuma ───────────────────────────────
@@ -56,9 +57,9 @@ int readRFID()
     // Yetkili UID listesiyle karşılaştır
     for (int i = 0; i < AUTHORIZED_UID_COUNT; i++)
     {
-        if (uid == String(AUTHORIZED_UIDS[i]))
+        if (String(AUTHORIZED_UIDS[i]).length() > 0 && uid == String(AUTHORIZED_UIDS[i]))
         {
-            Serial.printf("[RFID] ✅ Yetkili kart: %s\n", uid.c_str());
+            Serial.println("[RFID] ✅ Yetkili kart");
             rfid.PICC_HaltA();        // Kartı durdur
             rfid.PCD_StopCrypto1();
             return i + 1;

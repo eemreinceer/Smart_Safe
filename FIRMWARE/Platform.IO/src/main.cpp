@@ -15,8 +15,6 @@
 #include "systemstate.h"
 
 #include "esp_task_wdt.h"
-#include "soc/soc.h"
-#include "soc/rtc_cntl_reg.h"
 
 // ─────────────────────────────────────────────
 //  Forward Declarations
@@ -33,12 +31,14 @@ void taskSystem  (void* pv);
 // ══════════════════════════════════════════════
 void taskRFID(void* pv)
 {
+    esp_task_wdt_add(NULL);
     while (true)
     {
         if (securityIsLockedDown() ||
             currentState == STATE_LOCKDOWN ||
             currentState == STATE_ALARM)
         {
+            esp_task_wdt_reset();
             vTaskDelay(pdMS_TO_TICKS(1000));
             continue;
         }
@@ -70,6 +70,7 @@ void taskRFID(void* pv)
         }
 
         vTaskDelay(pdMS_TO_TICKS(200));
+        esp_task_wdt_reset();
     }
 }
 
@@ -79,14 +80,19 @@ void taskRFID(void* pv)
 // ══════════════════════════════════════════════
 void taskSecurity(void* pv)
 {
+    esp_task_wdt_add(NULL);
     SafeEvent ev;
 
     while (true)
     {
         if (xQueueReceive(eventQueue, &ev, pdMS_TO_TICKS(8000)) != pdTRUE)
+        {
+            esp_task_wdt_reset();
             continue;
+        }
 
         securityHandleEvent(ev);
+        esp_task_wdt_reset();
     }
 }
 
@@ -96,14 +102,26 @@ void taskSecurity(void* pv)
 // ══════════════════════════════════════════════
 void taskCloud(void* pv)
 {
+    esp_task_wdt_add(NULL);
     unsigned int counter = 0;
+    bool lastPublishedLockState = isSafeLocked();
 
     while (true)
     {
         handleOTA();
 
+        const bool lockState = isSafeLocked();
+        if (lockState != lastPublishedLockState && wifiIsConnected())
+        {
+            if (updateLockState(lockState))
+                lastPublishedLockState = lockState;
+        }
+
         if (counter % 5 == 0 && wifiIsConnected())
         {
+            if (!firebaseIsReady() && firebaseIsConfigured())
+                initFirebase();
+
             trySyncOfflineLogs();
 
             bool alarmTrigger = false, remoteUnlock = false;
@@ -122,7 +140,8 @@ void taskCloud(void* pv)
                     memset(&rem, 0, sizeof(rem));
                     rem.type = EVENT_AUTHORIZED;
                     snprintf(rem.id, sizeof(rem.id), "REMOTE");
-                    xQueueSend(eventQueue, &rem, 0);
+                    if (xQueueSend(eventQueue, &rem, 0) != pdTRUE)
+                        Serial.println("[CLOUD] Security queue dolu; unlock reddedildi");
                 }
             }
         }
@@ -132,6 +151,7 @@ void taskCloud(void* pv)
 
         counter++;
         vTaskDelay(pdMS_TO_TICKS(1000));
+        esp_task_wdt_reset();
     }
 }
 
@@ -141,9 +161,11 @@ void taskCloud(void* pv)
 // ══════════════════════════════════════════════
 void taskWifi(void* pv)
 {
+    esp_task_wdt_add(NULL);
     while (true)
     {
         wifiReconnect();
+        esp_task_wdt_reset();
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
@@ -154,20 +176,28 @@ void taskWifi(void* pv)
 // ══════════════════════════════════════════════
 void taskSystem(void* pv)
 {
+    esp_task_wdt_add(NULL);
+    unsigned long lastReportAt = 0;
     while (true)
     {
         securityCheckExpiry();
+        serviceLock();
 
-        Serial.printf("[SYS] Heap: %u | State: %s | WiFi: %s\n",
-                      ESP.getFreeHeap(),
-                      getStateName(currentState),
-                      wifiIsConnected() ? "OK" : "DOWN");
+        if (millis() - lastReportAt >= 5000)
+        {
+            lastReportAt = millis();
+            Serial.printf("[SYS] Heap: %u | State: %s | WiFi: %s\n",
+                          ESP.getFreeHeap(),
+                          getStateName(currentState),
+                          wifiIsConnected() ? "OK" : "DOWN");
 
-        unsigned long lu = securityGetLockUntil();
-        if (lu > millis())
-            Serial.printf("[SYS] Lockdown: %lu ms kaldi\n", lu - millis());
+            unsigned long lu = securityGetLockUntil();
+            if (lu > millis())
+                Serial.printf("[SYS] Lockdown: %lu ms kaldi\n", lu - millis());
+        }
 
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(50));
+        esp_task_wdt_reset();
     }
 }
 
@@ -179,8 +209,6 @@ void setup()
 {
     Serial.begin(115200);
     delay(2000);
-    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-
     Serial.println("\n========================================");
     Serial.println("[SETUP] Akilli Guvenlik Kasasi basliyor");
     Serial.println("========================================");
@@ -222,11 +250,19 @@ void setup()
     }
 
     // ── Task'lar ─────────────────────────────
-    xTaskCreatePinnedToCore(taskRFID,     "rfid",     4096,  NULL, 2, NULL, 1);
-    xTaskCreatePinnedToCore(taskSecurity, "security", 12288, NULL, 2, NULL, 1);
-    xTaskCreatePinnedToCore(taskCloud,    "cloud",    12288, NULL, 1, NULL, 0);
-    xTaskCreatePinnedToCore(taskWifi,     "wifi",     4096,  NULL, 1, NULL, 0);
-    xTaskCreatePinnedToCore(taskSystem,   "system",   2048,  NULL, 1, NULL, 0);
+    bool tasksOk = true;
+    tasksOk = xTaskCreatePinnedToCore(taskRFID,     "rfid",     4096,  NULL, 2, NULL, 1) == pdPASS && tasksOk;
+    tasksOk = xTaskCreatePinnedToCore(taskSecurity, "security", 12288, NULL, 2, NULL, 1) == pdPASS && tasksOk;
+    tasksOk = xTaskCreatePinnedToCore(taskCloud,    "cloud",    12288, NULL, 1, NULL, 0) == pdPASS && tasksOk;
+    tasksOk = xTaskCreatePinnedToCore(taskWifi,     "wifi",     4096,  NULL, 1, NULL, 0) == pdPASS && tasksOk;
+    tasksOk = xTaskCreatePinnedToCore(taskSystem,   "system",   2048,  NULL, 1, NULL, 0) == pdPASS && tasksOk;
+
+    if (!tasksOk)
+    {
+        lockSafe();
+        Serial.println("[SETUP] Task olusturma basarisiz; kilit safe state'te.");
+        esp_restart();
+    }
 
     Serial.println("[SETUP] SMART SAFE READY\n");
 }

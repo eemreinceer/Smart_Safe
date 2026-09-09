@@ -1,17 +1,29 @@
 #!/bin/bash
 # Wokwi entegrasyon test scripti
 
-export WOKWI_CLI_TOKEN=***REMOVED***
-LOG=/tmp/wokwi.log
-PIPE=/tmp/wokwi_in
+set -eu
 
-rm -f "$PIPE" "$LOG"
+: "${WOKWI_CLI_TOKEN:?WOKWI_CLI_TOKEN ortam degiskeni tanimli olmali}"
+
+LOG=$(mktemp)
+PIPE=$(mktemp -u)
+WOKWI_PID=""
+
+cleanup() {
+    exec 3>&- 2>/dev/null || true
+    if [ -n "$WOKWI_PID" ]; then kill "$WOKWI_PID" 2>/dev/null || true; fi
+    rm -f "$PIPE" "$LOG"
+}
+trap cleanup EXIT INT TERM
+
 mkfifo "$PIPE"
 
 cd "$(dirname "$0")"
 
 # Pipe'ı açık tut (writer process)
 exec 3>"$PIPE"
+
+pio run -e esp32cam
 
 # Wokwi'yi başlat
 wokwi-cli --interactive . < "$PIPE" > "$LOG" 2>&1 &
@@ -28,11 +40,21 @@ for i in $(seq 1 60); do
     sleep 2
 done
 
+if ! grep -q "SMART SAFE READY" "$LOG"; then
+    echo "[TEST] ESP32 hazir olmadi" >&2
+    exit 1
+fi
+
 # === TEST 1: YETKİLİ RFID ===
 echo ""
 echo "[TEST] === TEST 1: Yetkili RFID ==="
-echo "RFID:00000000" >&3
+echo "RFID:A1B2C3D4" >&3
 sleep 8
+
+grep -q "Yetkili giris: KART-1" "$LOG" || {
+    echo "[TEST] Yetkili RFID sonucu gorulmedi" >&2
+    exit 1
+}
 
 echo "[TEST] --- Log (TEST 1 sonrası) ---"
 tail -20 "$LOG"
@@ -43,25 +65,13 @@ echo "[TEST] === TEST 2: Yetkisiz RFID ==="
 echo "RFID:DEADBEEF" >&3
 sleep 8
 
+grep -q "YETKISIZ ERISIM" "$LOG" || {
+    echo "[TEST] Yetkisiz RFID sonucu gorulmedi" >&2
+    exit 1
+}
+
 echo "[TEST] --- Log (TEST 2 sonrası) ---"
 tail -20 "$LOG"
 
-# === TEST 3: UZAKTAN KİLİT AÇMA ===
 echo ""
-echo "[TEST] === TEST 3: Uzaktan kilit açma (Firebase üzerinden) ==="
-# Firebase'e REMOTE_UNLOCK yaz
-curl -s -X PUT \
-  "https://smartsafe-8f4f9-default-rtdb.firebaseio.com/safe_001/control/alarm.json" \
-  -d '"REMOTE_UNLOCK"' \
-  -H "Content-Type: application/json"
-echo ""
-echo "[TEST] Firebase'e REMOTE_UNLOCK yazıldı, 12 saniye bekleniyor..."
-sleep 12
-
-echo "[TEST] --- Son 30 satır log ---"
-tail -30 "$LOG"
-
-exec 3>&-
-kill $WOKWI_PID 2>/dev/null
-echo ""
-echo "[TEST] Test tamamlandı."
+echo "[TEST] Testler başarılı."

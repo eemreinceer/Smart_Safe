@@ -1,5 +1,5 @@
 /* ======================================
-   SmartSafe AI — Dashboard Stylesheet
+   SmartSafe — Dashboard Stylesheet
    Modern, Corporate, Dark Theme
    ====================================== */
 
@@ -830,7 +830,7 @@ body {
     margin-top: 4px;
 }
 
-.log-item__method-tag--face {
+.log-item__method-tag--rfid {
     background: rgba(99, 102, 241, 0.1);
     color: var(--accent-light);
 }

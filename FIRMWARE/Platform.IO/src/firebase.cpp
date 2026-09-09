@@ -5,6 +5,7 @@
 #include "wifi_manager.h"
 #include "config.h"
 #include "systemstate.h"
+#include "lock.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -15,6 +16,14 @@
 static bool              firebaseReady = false;
 static const char*       DB_HOST       = DATABASE_URL;
 static SemaphoreHandle_t restMutex     = NULL;
+
+static bool hasFirebaseConfig()
+{
+    return strlen(API_KEY) > 0 && strlen(DATABASE_URL) > 0 &&
+           strlen(FIREBASE_AUTH_EMAIL) > 0 &&
+           strlen(FIREBASE_AUTH_PASSWORD) > 0 &&
+           strlen(FIREBASE_ROOT_CA_PEM) > 0;
+}
 
 // ══════════════════════════════════════════════
 //  Zaman damgası (dahili yardımcı)
@@ -38,6 +47,12 @@ static uint32_t tokenExpirationTime = 0;
 // ══════════════════════════════════════════════
 static bool loginFirebase()
 {
+    if (!hasFirebaseConfig())
+    {
+        Serial.println("[FB-AUTH] Eksik Firebase/TLS yapilandirmasi");
+        return false;
+    }
+
     if (!wifiIsConnected())
     {
         Serial.println("[FB-AUTH] WiFi bagli degil");
@@ -55,7 +70,7 @@ static bool loginFirebase()
     Serial.printf("[FB-AUTH] Email: %s\n", FIREBASE_AUTH_EMAIL);
 
     WiFiClientSecure client;
-    client.setInsecure();
+    client.setCACert(FIREBASE_ROOT_CA_PEM);
     client.setTimeout(10);
 
     HTTPClient http;
@@ -158,7 +173,7 @@ static bool restRequest(const String& method,
     }
 
     WiFiClientSecure client;
-    client.setInsecure();
+    client.setCACert(FIREBASE_ROOT_CA_PEM);
     client.setTimeout(10); // 10 sn TCP timeout — SSL donma önlemi
 
     HTTPClient http;
@@ -200,19 +215,10 @@ static bool restRequest(const String& method,
 void initFirebaseStructure()
 {
     String resp;
-    String body =
-        "{\"config\":{"
-            "\"alarmEnabled\":true,"
-            "\"lockTimeout\":30,"
-            "\"maxFailAttempts\":" + String(MAX_FAIL_ATTEMPTS) + ","
-            "\"lockdownDuration\":" + String(LOCKDOWN_DURATION_MS / 1000) + ","
-            "\"lockOpenDuration\":" + String(LOCK_OPEN_DURATION_MS / 1000) +
-        "},\"control\":{\"alarm\":\"IDLE\"}}";
-
-    if (restRequest("PATCH", "/safe_001", body, resp))
-        Serial.println("[FB] Config yazildi");
+    if (restRequest("PUT", "/safe_001/control/alarm", "\"IDLE\"", resp))
+        Serial.println("[FB] Komut kanali guvenli duruma getirildi");
     else
-        Serial.println("[FB] Config yazilamadi");
+        Serial.println("[FB] Komut kanali baslatilamadi");
 }
 
 // ══════════════════════════════════════════════
@@ -223,6 +229,12 @@ void initFirebase()
 {
     if (restMutex == NULL)
         restMutex = xSemaphoreCreateMutex();
+
+    if (!hasFirebaseConfig())
+    {
+        Serial.println("[FB] Firebase veya CA tanimsiz; cloud fail-closed devre disi.");
+        return;
+    }
 
     if (!wifiIsConnected())
     {
@@ -240,6 +252,16 @@ void initFirebase()
     updateDeviceStatus();
 }
 
+bool firebaseIsReady()
+{
+    return firebaseReady;
+}
+
+bool firebaseIsConfigured()
+{
+    return hasFirebaseConfig();
+}
+
 // ══════════════════════════════════════════════
 //  Cihaz durumu
 // ══════════════════════════════════════════════
@@ -249,7 +271,7 @@ bool updateDeviceStatus()
 
     String body =
         "{\"is_online\":true,"
-        "\"is_locked\":true,"
+        "\"is_locked\":" + String(isSafeLocked() ? "true" : "false") + ","
         "\"last_seen\":"  + String((int)time(nullptr)) + ","
         "\"ip\":\""       + WiFi.localIP().toString()  + "\","
         "\"freeHeap\":"   + String((int)ESP.getFreeHeap()) + ","
@@ -288,14 +310,17 @@ bool updateLockState(bool isLocked)
 // ══════════════════════════════════════════════
 //  Log gönder
 // ══════════════════════════════════════════════
-bool sendLog(String status, String id, String photoBase64)
+bool sendLog(String status, String id, String photoBase64, uint32_t eventTimestamp)
 {
     if (!firebaseReady) return false;
+
+    if (eventTimestamp == 0)
+        eventTimestamp = static_cast<uint32_t>(time(nullptr));
 
     String body =
         "{\"event\":\""  + status + "\","
         "\"method\":\"" + id     + "\","
-        "\"timestamp\":" + String((int)time(nullptr)) + ","
+        "\"timestamp\":" + String(eventTimestamp) + ","
         "\"state\":\""   + String(getStateName(currentState)) + "\"";
 
     if (photoBase64.length() > 0)
@@ -327,11 +352,20 @@ bool checkRemoteCommands(bool& alarmTrigger, bool& remoteUnlock)
     if (!restRequest("GET", "/safe_001/control/alarm", "", resp))
         return false;
 
-    alarmTrigger = (resp.indexOf("TRIGGER")       >= 0);
-    remoteUnlock = (resp.indexOf("REMOTE_UNLOCK")  >= 0);
+    resp.trim();
+    alarmTrigger = (resp == "\"TRIGGER\"");
+    remoteUnlock = (resp == "\"REMOTE_UNLOCK\"");
 
     if (alarmTrigger || remoteUnlock)
-        restRequest("PUT", "/safe_001/control/alarm", "\"IDLE\"", resp);
+    {
+        if (!restRequest("PUT", "/safe_001/control/alarm", "\"IDLE\"", resp))
+        {
+            alarmTrigger = false;
+            remoteUnlock = false;
+            Serial.println("[FB] Komut claim edilemedi; guvenli sekilde reddedildi");
+            return false;
+        }
+    }
 
     return true;
 }

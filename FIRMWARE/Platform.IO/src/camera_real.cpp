@@ -44,7 +44,7 @@ static bool cameraInit()
 
     if (psramFound())
     {
-        config.frame_size   = FRAMESIZE_QVGA;  // 320x240 — yüz tespiti + Firebase uyumlu boyut
+        config.frame_size   = FRAMESIZE_QVGA;  // 320x240 — olay fotoğrafı + Firebase uyumlu boyut
         config.jpeg_quality = 8;               // ~28KB JPEG → ~38KB base64, SSL heap güvenli
         config.fb_count     = 2;
         config.fb_location  = CAMERA_FB_IN_PSRAM;
