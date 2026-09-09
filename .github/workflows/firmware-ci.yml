@@ -44,7 +44,7 @@ jobs:
       - name: Reject known credential assignments
         shell: bash
         run: |
-          if git grep -nE '(WOKWI_CLI_TOKEN=.{8}|FIREBASE_AUTH_PASSWORD[[:space:]]+"[^"[:space:]]{8,}")' -- ':!*.example.*'; then
+          if git grep -nE '(WOKWI_CLI_TOKEN=.{8}|FIREBASE_AUTH_PASSWORD[[:space:]]+"[^"[:space:]]{8,}")' -- ':!*.example.*' ':!.github/workflows/firmware-ci.yml'; then
             echo "Possible credential assignment detected" >&2
             exit 1
           fi
