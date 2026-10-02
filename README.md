@@ -1,112 +1,85 @@
-# SmartSafe — RFID Tabanlı IoT Kasa Prototipi
+# SmartSafe
 
-SmartSafe; ESP32-CAM, RC522 RFID okuyucu, solenoid kilit, Firebase Realtime Database ve web kontrol panelinden oluşan bir **prototip** erişim kontrol sistemidir.
+ESP32-CAM based RFID access-control and IoT safe prototype.
 
-Sistemin tek yerel kimlik doğrulama yöntemi, yapılandırılmış RFID kart UID'leridir. Kamera kaynakları yalnızca yetkisiz erişim olayına fotoğraf eklemek için korunmuştur.
+SmartSafe combines embedded firmware, a physical RFID authorization path, a solenoid-lock driver, event capture, Firebase Realtime Database synchronization, a web dashboard, KiCad PCB sources and Fusion 360 mechanical files.
 
-> **Güvenlik sınırı:** RC522 ile kart UID karşılaştırması, klonlanabilir kartlara karşı kriptografik authentication sağlamaz. Bu proje hobby/prototype seviyesindedir; değerli varlıklar için tek güvenlik katmanı olarak kullanılmamalıdır.
+## What this project demonstrates
 
-## Mimari
+- C++ firmware on ESP32-CAM with FreeRTOS tasks and a non-blocking state-machine design.
+- Local RFID allowlist authorization using an RC522 reader.
+- Fail-closed handling for missing credentials, missing TLS CA data and unprovisioned OTA authentication.
+- Solenoid/MOSFET lock-control path with explicit actuator-command state.
+- Firebase RTDB event synchronization with an offline queue.
+- Append-only event logging and role-separated database rules for device/admin/operator access.
+- PlatformIO build and mock-test workflow with GitHub Actions checks.
+- KiCad schematic/PCB sources and Fusion 360 enclosure/mechanical sources.
 
-```text
-Tanımlı RFID UID
-       |
-       v
-ESP32-CAM firmware ----> Solenoid/MOSFET kilit kontrolü
-       |                         |
-       |                         +--> commanded lock state
-       v
-Firebase RTDB <-------- device status / append-only event logs
-       ^
-       |
-Yetkili web paneli ----> alarm command request
-```
+## Architecture
 
-- RFID kararı cihazda verilir; Firebase bağlantısı yerel kart kontrolü için gerekli değildir.
-- Kilidi yalnızca cihazdaki allowlist'e tanımlı fiziksel RFID kart açabilir; cloud ve web paneli unlock yetkisine sahip değildir.
-- Web paneli status veya audit log üretmez.
-- TLS CA veya credential eksikse cloud bağlantısı fail-closed devre dışı kalır.
-- OTA password hash yapılandırılmamışsa OTA servisi başlatılmaz.
+~~~text
+RFID allowlist
+      |
+      v
+ESP32-CAM firmware ---> MOSFET / solenoid lock
+      |                         |
+      |                         +--> commanded lock state
+      v
+Firebase RTDB <--------- device status and audit events
+      ^
+      |
+Authorized dashboard ---> alarm command request
+~~~
 
-## Repository yapısı
+The physical RFID decision is local to the device. The cloud and web dashboard do not directly unlock the safe.
 
-```text
-Smart_Safe/
-├── 3D/                         # Fusion 360 kaynakları
-├── PCB/                        # KiCad şema, PCB ve Gerber kaynakları
-├── FIRMWARE/
-│   ├── Platform.IO/            # ESP32-CAM firmware
-│   └── WEB/akilli-kasa-dashboard/ # Firebase web paneli ve RTDB rules
-└── SECURITY.md
-```
+## Repository map
 
-## Firmware yapılandırması
+- FIRMWARE/Platform.IO/ - ESP32-CAM firmware, mocks and PlatformIO configuration
+- FIRMWARE/WEB/akilli-kasa-dashboard/ - dashboard, Firebase config template and RTDB rules
+- PCB/ - KiCad schematic and PCB sources
+- 3D/ - Fusion 360 source files
+- docs/ - physical bring-up and acceptance checklist
+- SECURITY.md - security assumptions and reporting guidance
 
-Gizli bilgiler repoya yazılmaz. Örnek dosyayı yerel `secrets.h` olarak kopyalayıp değerleri doldurun:
+## Local configuration
 
-```bash
+Secrets are intentionally excluded from Git. Copy the templates locally:
+
+~~~bash
 cd FIRMWARE/Platform.IO
 cp include/secrets.example.h include/secrets.h
-```
 
-`include/secrets.h`, `.gitignore` kapsamındadır. Wi-Fi bilgileri, ayrı Firebase device account credential'ları, Firebase CA PEM, OTA password hash ve izin verilen RFID UID'leri burada tutulur.
+cd ../WEB/akilli-kasa-dashboard/web
+cp firebase-config.example.js firebase-config.js
+~~~
 
-Firmware ve dashboard için aynı Firebase hesabını kullanmayın. Device hesabına `device_id: "safe_001"`; yönetici hesabına `admin: true` custom claim verilmelidir. Custom claim'ler yalnızca güvenilir Admin SDK ortamından atanmalıdır.
+Do not commit Wi-Fi credentials, Firebase service-account keys, device passwords, OTA secrets, tokens or personal event images. Use separate Firebase identities for the device and dashboard, and deploy the RTDB rules before connecting a real device.
 
-## Build
+## Build and test
 
-```bash
+~~~bash
 cd FIRMWARE/Platform.IO
-pio run -e esp32cam           # simulation build
-pio run -e esp32cam-hardware  # gerçek donanım kod yolu
-pio run -e esp32cam-production # cihaza yüklenecek, RFID UID zorunlu image
-```
-
-Hardware build'in geçmesi, pinlerin/gerilimlerin doğrulandığını veya fiziksel kilidin güvenli çalıştığını kanıtlamaz.
-Fiziksel ilk enerji verme ve kabul adımları için
-[`docs/PHYSICAL_BRINGUP_CHECKLIST.md`](docs/PHYSICAL_BRINGUP_CHECKLIST.md) izlenmelidir.
-
-## Wokwi testi
-
-Token'ı shell ortamından verin; token dosyaya veya komut geçmişine yazılmamalıdır:
-
-```bash
-export WOKWI_CLI_TOKEN='...'
-cd FIRMWARE/Platform.IO
+pio run -e esp32cam
+pio run -e esp32cam-hardware
+pio run -e esp32cam-production
 ./wokwi_test.sh
-```
+~~~
 
-Script firmware'i derler; tanımlı ve tanımsız mock RFID akışlarını assertion ile kontrol eder. Cloud veya fiziksel donanım kanıtı değildir.
+The Wokwi/mock path checks firmware behavior and RFID flows; it is not proof of physical lock safety, cloud availability or hardware electrical correctness. Follow the physical bring-up checklist before energizing a real actuator.
 
-## Firebase deployment
+## Security boundaries
 
-Rules deploy edilmeden dashboard veya cihazı production Firebase projesine bağlamayın:
+- RC522 UID matching is not cryptographic authentication and cards can be cloned.
+- is_locked represents the commanded actuator state because the prototype has no physical lock-position sensor.
+- A solenoid must use an appropriate external supply, common ground and flyback protection.
+- ESP32-CAM and RC522 logic are 3.3 V; signal levels and MOSFET gate drive must be verified against the relevant datasheets.
+- This is a prototype and must not be treated as the sole security layer for valuable assets.
 
-```bash
-cd FIRMWARE/WEB/akilli-kasa-dashboard
-firebase deploy --only database,hosting
-```
+## Project scope
 
-`database.rules.json` varsayılan olarak tüm erişimi reddeder ve yalnızca custom claim ile ayrılmış device/admin/operator rollerine gerekli minimum yetkiyi verir.
+This is a personal engineering and learning project. It includes AI-assisted development in parts; the repository documents the implemented architecture, security decisions, test paths and limitations rather than claiming production readiness.
 
-Dashboard için `web/firebase-config.example.js` dosyasını yerel
-`web/firebase-config.js` olarak kopyalayın. Gerçek dosya Git'te izlenmez. Firebase web
-config public istemci yapılandırması olsa da API key, Google Cloud Console'da yalnızca
-gerekli Firebase API'leri ve izinli hosting domain'leriyle sınırlanmalıdır.
+## License
 
-## Donanım güvenliği
-
-- ESP32-CAM lojik seviyesi 3.3 V'tur; 5 V sinyal doğrudan GPIO'ya uygulanmamalıdır.
-- RC522 3.3 V ile beslenmelidir.
-- Solenoid MCU regülatöründen beslenmemelidir; ortak GND ve uygun flyback koruması gereklidir.
-- MOSFET, 3.3 V gate geriliminde yük akımı için datasheet ile doğrulanmalıdır.
-- Brownout detector aktiftir. Brownout reset'i yazılımla gizlenmemeli, besleme bütünlüğü ölçülmelidir.
-- Fiziksel lock-position sensörü olmadığı için `is_locked`, mekanik geri besleme değil actuator command state'idir.
-
-## Doğrulama durumu
-
-Kanıtlanmamış latency, uptime veya fiziksel güvenlik iddiası yapılmaz. Kabul seviyeleri: simulation/mock test, hardware configuration build, Firebase Emulator rules testi, bench ölçümü ve son olarak gerçek kart/actuator/network-loss testi.
-
-## Lisans
-
-MIT License — Copyright (c) 2026 Emre İnceer
+MIT License. See LICENSE.
