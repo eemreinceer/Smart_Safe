@@ -82,4 +82,4 @@ This is a personal engineering and learning project. It includes AI-assisted dev
 
 ## License
 
-MIT License. See LICENSE.
+No LICENSE file has been added yet. Reuse and redistribution should not be assumed until a license is explicitly added.
